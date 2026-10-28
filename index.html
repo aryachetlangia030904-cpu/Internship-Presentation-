@@ -1,0 +1,951 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ed Optimize Cafe</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Averia+Libre:wght@400;700&family=Cedarville+Cursive&family=Andika:wght@700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --beige:#F6E9D1; --beige-2:#EFDDBE; --cream:#FBF6EE; --ink:#2B211B; --ink-2:#5B4A3E;
+    --red:#D25640; --red-deep:#B43A25; --green:#486D4C; --yellow:#FBBF51; --line:#0B0A09; --paper:#FFFFFF;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:#E6F4FF;color:var(--ink);font-family:"Averia Libre",serif;overflow:hidden}
+  #viewport{position:fixed;inset:0;overflow:hidden;background:#E6F4FF}
+  /* everything inside the stage uses the SVG's own 1920×1080 coordinate system */
+  #stage{position:absolute;left:0;top:0;width:1920px;height:1080px}
+  #cafe{position:absolute;inset:0;width:1920px;height:1080px;display:block;user-select:none;-webkit-user-drag:none}
+
+  /* ---------- menu hotspots ---------- */
+  .menu-hit{position:absolute;border-radius:10px;cursor:pointer;background:transparent;border:0;padding:0}
+  .menu-hit::after{content:"";position:absolute;left:4px;right:4px;bottom:2px;height:3px;border-radius:2px;background:var(--red);opacity:.35;transform:scaleX(1);transform-origin:left;transition:opacity .2s ease,height .2s ease}
+  .menu-hit:hover::after,.menu-hit:focus-visible::after,.menu-hit.active::after{opacity:1;height:3.5px}
+  .menu-hit:focus-visible{outline:2px dashed var(--red);outline-offset:2px}
+
+  /* ---------- thought bubble ---------- */
+  #thought{position:absolute;left:0;top:0;width:1920px;height:1080px;pointer-events:none}
+  #thought .puff{position:absolute;border:4px solid var(--line);background:#fff;border-radius:50%;transform:scale(0);opacity:0}
+  #thought .cloud{position:absolute;left:1030px;top:330px;width:250px;height:170px;transform:scale(0);opacity:0;transform-origin:10% 95%}
+  body.thinking #thought .puff{animation:pop .28s cubic-bezier(.3,1.6,.5,1) forwards}
+  body.thinking #thought .p2{animation-delay:.1s}
+  body.thinking #thought .p3{animation-delay:.2s}
+  body.thinking #thought .cloud{animation:pop .38s cubic-bezier(.3,1.5,.5,1) .3s forwards}
+  @keyframes pop{to{transform:scale(1);opacity:1}}
+  body.thought-out #thought{transition:opacity .25s;opacity:0}
+
+  /* ---------- presentation layers ---------- */
+  /* the white blind rolls down out of the white band under the awning */
+  #screen{position:absolute;left:456px;top:278px;width:898px;height:705px;background:var(--paper);
+    clip-path:inset(0 0 100% 0);transition:clip-path .6s cubic-bezier(.65,0,.25,1);overflow:hidden}
+  #screen::before{content:"";position:absolute;left:0;right:0;top:0;height:10px;background:linear-gradient(rgba(0,0,0,.08),transparent);z-index:2}
+  #panel{position:absolute;left:1356px;top:276px;width:424px;height:707px;background:var(--beige);
+    clip-path:inset(0 0 100% 0);transition:clip-path .6s cubic-bezier(.65,0,.25,1) .1s;overflow:hidden}
+  /* the edge of the blind: a rail that travels down with it */
+  .rail{position:absolute;left:0;right:0;height:14px;top:0;background:linear-gradient(#fff,#ece7df);border-bottom:3px solid var(--line);border-radius:0 0 6px 6px;transform:translateY(-20px);transition:transform .6s cubic-bezier(.65,0,.25,1);z-index:5}
+  #panel .rail{background:linear-gradient(var(--beige),var(--beige-2));transition-delay:.1s}
+  body.open #screen,body.open #panel{clip-path:inset(0 0 0 0)}
+  body.open #screen .rail{transform:translateY(691px)}
+  body.open #panel .rail{transform:translateY(693px)}
+  body.open .rail{opacity:0;transition:transform .6s cubic-bezier(.65,0,.25,1),opacity .2s .65s}
+  body.open #panel .rail{transition:transform .6s cubic-bezier(.65,0,.25,1) .1s,opacity .2s .75s}
+  .reveal{opacity:0;transform:translateY(14px);transition:opacity .35s ease,transform .45s cubic-bezier(.2,.8,.2,1)}
+  body.shown .reveal{opacity:1;transform:none}
+  body.shown .reveal.d1{transition-delay:.05s} body.shown .reveal.d2{transition-delay:.12s} body.shown .reveal.d3{transition-delay:.19s}
+
+  /* one view per case study inside each layer */
+  .view{position:absolute;inset:0;display:none}
+  body[data-study="revamp"] .view.revamp, body[data-study="website"] .view.website, body[data-study="responsive"] .view.responsive, body[data-study="onboarding"] .view.onboarding, body[data-study="research"] .view.research, body[data-study="process"] .view.process, body[data-study="learnings"] .view.learnings, body[data-study="about"] .view.about{display:flex}
+
+  /* ---------- center ---------- */
+  .screen-inner{padding:40px 29px 22px;flex-direction:column;justify-content:center}
+  .proto-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:12px;flex:none}
+  .proto-title{font:700 30px/1 "Averia Libre",serif;color:var(--ink);margin:0;display:flex;align-items:center;gap:12px}
+  .pill{font:400 32px/1 "Cedarville Cursive",cursive;color:var(--red);white-space:nowrap;margin-left:4px}
+  .pill.new{background:#B9D7B0}
+  .pill.turn{background:#F4B9AE}
+  .pill.wip{background:#fff;border-style:dashed}
+  .proto-note{font:600 15px/1.35 "Averia Libre",serif;color:var(--ink-2);margin:0;max-width:430px;text-align:right}
+  .proto-note b{color:var(--red)}
+  .device{position:relative;flex:none;width:840px;height:472px;border:3px solid var(--line);border-radius:14px;overflow:hidden;background:#f3f3f3;box-shadow:6px 6px 0 rgba(11,10,9,.9)}
+  .device video{position:absolute;inset:0;width:100%;height:100%;background:#111;display:block}
+  .website .device{height:540px;background:#fff}
+  .device:fullscreen{border:0;border-radius:0;box-shadow:none}
+
+  /* website slides */
+  .slide{position:absolute;inset:0;display:none}
+  .slide.on{display:block;animation:slideIn .4s cubic-bezier(.2,.8,.2,1)}
+  @keyframes slideIn{from{opacity:0;transform:translateY(8px)}}
+  .slide iframe{position:absolute;inset:0;width:100%;height:100%;border:0;background:#fff}
+  .scroller{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;scrollbar-color:var(--red) #f3ece0;background:#fff}
+  .scroller img{display:block;width:100%;height:auto}
+  .scroll-hint{position:absolute;right:14px;bottom:14px;font:800 13px "Averia Libre",serif;background:#fff;border:2px solid var(--line);border-radius:999px;padding:6px 11px;box-shadow:2px 2px 0 var(--line);pointer-events:none;transition:opacity .3s}
+  .scroll-hint.gone{opacity:0}
+  .expand{position:absolute;right:12px;top:12px;z-index:3;font:800 13px "Averia Libre",serif;background:#fff;color:var(--ink);border:2px solid var(--line);border-radius:999px;padding:6px 11px;box-shadow:2px 2px 0 var(--line);cursor:pointer;text-decoration:none;display:inline-flex;gap:6px;align-items:center}
+  .expand:hover{background:var(--cream)}
+  .device:fullscreen .expand{display:none}
+
+  /* UI revamp: the center scrolls into the prototypes when New UI is chosen */
+  .view.revamp.screen-inner,.view.onboarding.screen-inner{padding:0;justify-content:flex-start}
+  .revamp-scroll{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;padding:40px 29px 40px;scrollbar-width:thin;scrollbar-color:var(--red) transparent;scroll-behavior:smooth}
+  .revamp-scroll > .proto-head, .revamp-scroll > .device{margin-left:auto;margin-right:auto}
+  .revamp-scroll > .device{margin-top:0}
+  body:not([data-v="new"]) .revamp-scroll:not(.scroll-col){display:flex;flex-direction:column;justify-content:center;overflow:hidden}
+  .protos{display:none;margin-top:30px}
+  body[data-v="new"] .protos{display:block}
+  .more-hint{display:none;margin:18px auto 0;width:max-content;font:800 14px "Averia Libre",serif;background:var(--yellow);border:2px solid var(--line);border-radius:999px;padding:7px 14px;box-shadow:2px 2px 0 var(--line);cursor:pointer;color:var(--ink)}
+  body[data-v="new"] .more-hint{display:block;animation:bob 1.6s ease-in-out infinite}
+  @keyframes bob{50%{transform:translateY(4px)}}
+  .protos-title{display:flex;align-items:center;gap:12px;font:700 34px/1 "Averia Libre",serif;margin:10px 0 4px;padding-top:24px;border-top:3px dashed rgba(11,10,9,.2)}
+  .protos-sub{font:600 15px/1.4 "Averia Libre",serif;color:var(--ink-2);margin:0 0 6px}
+  .proto-item{margin-top:28px}
+  .scroll-col .proto-item:first-child{margin-top:8px}
+  .proto-item h3{display:flex;align-items:baseline;justify-content:space-between;gap:12px;font:700 23px/1.1 "Averia Libre",serif;margin:0 0 10px}
+  .proto-item h3 .n{color:var(--red);margin-right:8px}
+  .proto-item h3 a{font:800 13px "Averia Libre",serif;color:var(--ink-2);text-decoration:none;border-bottom:2px solid var(--red);white-space:nowrap}
+  .proto-item .device{height:500px;background:#fff}
+  .proto-item .device iframe{position:absolute;inset:0;width:100%;height:100%;border:0;background:#fff}
+  .proto-item .device .loading{position:absolute;inset:0;display:grid;place-items:center;font:400 35px "Cedarville Cursive",cursive;color:var(--ink-2)}
+
+  /* responsive design: phones */
+  .phones{display:flex;justify-content:center;align-items:flex-end;gap:46px;height:560px;flex:none}
+  .phone{display:flex;flex-direction:column;align-items:center;gap:10px}
+  .phone .shell{position:relative;height:520px;padding:12px;background:#1d1b19;border:3px solid var(--line);border-radius:38px;box-shadow:6px 6px 0 rgba(11,10,9,.9)}
+  .phone .shell::before{content:"";position:absolute;left:50%;top:5px;width:60px;height:5px;margin-left:-30px;border-radius:9px;background:#3a3633}
+  .phone video{display:block;height:100%;border-radius:26px;background:#000}
+  .phone .cap{font:400 27px "Cedarville Cursive",cursive;color:var(--ink-2)}
+
+  /* turning point: the insight spans the screen and the panel */
+  .slide.on.insight,.slide.on.wip{display:flex}
+  .insight{flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px 70px;background:
+    radial-gradient(circle at 50% 40%,#FFF6E4 0,#fff 62%)}
+  .eye{width:170px;height:110px;margin-bottom:22px}
+  .eye .lid{transform-origin:50% 50%;animation:blink 4.5s ease-in-out infinite}
+  @keyframes blink{0%,44%,52%,100%{transform:scaleY(1)}48%{transform:scaleY(.08)}}
+  .eye .rays line{stroke:var(--red);stroke-width:5;stroke-linecap:round;animation:ray 2.2s ease-in-out infinite}
+  @keyframes ray{50%{opacity:.35}}
+  .insight .kicker{font:400 41px "Cedarville Cursive",cursive;color:var(--red);margin:0 0 8px}
+  .insight blockquote{margin:0;font:600 23px/1.5 "Averia Libre",serif;color:var(--ink);max-width:660px}
+  .insight blockquote b{font-weight:800;background:linear-gradient(transparent 62%,#FBD99A 62%)}
+  .wip{flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:14px;
+    background:repeating-linear-gradient(-45deg,#fff 0 22px,#FBF3E4 22px 44px)}
+  .wip .tape{font:400 41px "Cedarville Cursive",cursive;color:var(--red)}
+  .wip h2{font:700 54px/1 "Averia Libre",serif;margin:8px 0 0}
+  .wip p{font:600 17px/1.5 "Averia Libre",serif;color:var(--ink-2);max-width:470px;margin:0}
+  .wip svg{width:120px;height:120px}
+  .wip .pencil{animation:scribble 1.6s ease-in-out infinite;transform-origin:30% 80%}
+  @keyframes scribble{50%{transform:rotate(-8deg) translate(-6px,4px)}}
+
+  /* ---------- right: case study panel ---------- */
+  .panel-inner{padding:26px 28px 22px;flex-direction:column}
+  .toggle{position:relative;display:grid;grid-template-columns:1fr 1fr;border:3px solid var(--line);border-radius:14px;background:#fff;padding:4px;box-shadow:3px 3px 0 var(--line);flex:none}
+  .toggle button{position:relative;z-index:1;font:700 21px "Averia Libre",serif;padding:8px 0 5px;border:0;background:transparent;color:var(--ink);cursor:pointer;border-radius:9px;transition:color .25s}
+  .toggle button[aria-pressed="true"]{color:#fff}
+  .toggle button:focus-visible{outline:3px solid var(--red);outline-offset:-3px}
+  .toggle .thumb{position:absolute;top:4px;bottom:4px;left:4px;width:calc(50% - 4px);border-radius:9px;background:var(--red);transition:transform .35s cubic-bezier(.5,0,.2,1)}
+  .toggle[data-v="new"] .thumb{transform:translateX(100%);background:var(--green)}
+  .copy{flex:1;overflow:auto;margin-top:22px;padding-right:8px;scrollbar-width:thin;scrollbar-color:var(--red) transparent}
+  .website .copy{margin-top:0}
+  .copy-pane{animation:copyIn .45s cubic-bezier(.2,.8,.2,1)}
+  @keyframes copyIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  .eyebrow{font:400 32px "Cedarville Cursive",cursive;color:var(--red);margin:0 0 2px}
+  .copy h2{font:700 30px/1.08 "Averia Libre",serif;margin:0 0 12px;color:var(--ink)}
+  .copy h2 .num{display:block;font:700 46px/1 "Averia Libre",serif;color:var(--red);margin-bottom:4px}
+  .copy h3{font:700 21px/1.1 "Averia Libre",serif;margin:20px 0 6px;color:var(--red);display:flex;align-items:center;gap:8px}
+  .copy p{font:400 16px/1.55 "Averia Libre",serif;margin:0 0 10px;color:var(--ink-2)}
+  .copy p.lead{font-weight:700;color:var(--ink)}
+  .copy ul{list-style:none;padding:0;margin:6px 0 10px}
+  .copy li{font:400 15.5px/1.5 "Averia Libre",serif;color:var(--ink-2);padding:8px 0 8px 26px;position:relative;border-top:2px dashed rgba(11,10,9,.14)}
+  .copy li:first-child{border-top:0}
+  .copy li::before{content:"";position:absolute;left:4px;top:16px;width:8px;height:8px;border-radius:50%;background:var(--red)}
+  .copy li b{color:var(--ink);font-weight:800}
+  .copy .takeaway{margin-top:18px;font:700 17px/1.45 "Averia Libre",serif;color:var(--ink)}
+  .copy .takeaway::before{content:"in short";display:block;font:400 28px/1.2 "Cedarville Cursive",cursive;color:var(--red);margin-bottom:2px}
+
+  /* small step navigation */
+  .stepnav{flex:none;display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:14px;padding-top:12px;border-top:2px dashed rgba(11,10,9,.2)}
+  .dots{display:flex;gap:6px}
+  .dots button{width:10px;height:10px;border-radius:50%;border:2px solid var(--line);background:#fff;padding:0;cursor:pointer}
+  .dots button[aria-current="true"]{background:var(--red);width:22px;border-radius:999px}
+  .arrows{display:flex;gap:8px}
+  .arrow{width:38px;height:38px;border-radius:50%;border:2.5px solid var(--line);background:#fff;font:800 18px "Averia Libre",serif;cursor:pointer;box-shadow:2px 2px 0 var(--line);display:grid;place-items:center;color:var(--ink);line-height:1}
+  .arrow:hover{background:var(--cream)} .arrow:active{transform:translate(2px,2px);box-shadow:none}
+  .arrow:disabled{opacity:.35;cursor:default;transform:none;box-shadow:2px 2px 0 var(--line)}
+  .arrow:focus-visible,.dots button:focus-visible{outline:3px solid var(--red);outline-offset:2px}
+
+  #closeBtn{position:absolute;left:1730px;top:236px;z-index:20;width:48px;height:48px;border-radius:50%;border:3px solid var(--line);background:#fff;font:800 22px "Averia Libre",serif;cursor:pointer;box-shadow:3px 3px 0 var(--line);opacity:0;pointer-events:none;transform:scale(.6);transition:opacity .25s,transform .25s cubic-bezier(.3,1.5,.5,1);display:grid;place-items:center}
+  body.shown #closeBtn{opacity:1;pointer-events:auto;transform:none}
+  #closeBtn:hover{background:var(--cream)}
+
+
+  /* ---------- menu heading redrawn over the illustration ---------- */
+  .menu-heading{position:absolute;left:256px;top:399px;margin:0;font:700 22px/1.18 Andika,sans-serif;color:var(--red);pointer-events:none;letter-spacing:-.005em}
+  .menu-hit.banner::after{left:34px;right:34px;bottom:20px;height:4px;opacity:0;transform:scaleX(0);transition:transform .25s ease,opacity .2s ease}
+  .menu-hit.banner:hover::after,.menu-hit.banner:focus-visible::after,.menu-hit.banner.active::after{opacity:1;transform:scaleX(1);height:4px}
+
+  /* center-only sections keep the shelves visible */
+  body.solo #panel{clip-path:inset(0 0 100% 0)!important}
+  body.solo #panel .rail{opacity:0}
+
+  /* ---------- shelf labels ---------- */
+  .shelf-item{position:absolute;cursor:help;border-radius:14px}
+  .shelf-item .tip{position:absolute;left:50%;bottom:calc(100% + 10px);transform:translate(-50%,8px) scale(.85) rotate(var(--r,-2deg));transform-origin:50% 100%;opacity:0;pointer-events:none;white-space:nowrap;
+    font:800 19px/1 "Averia Libre",serif;color:var(--ink);background:var(--cream);border:2.5px solid var(--line);border-radius:999px;padding:10px 17px 11px;box-shadow:3px 3px 0 var(--line);
+    transition:opacity .18s ease,transform .3s cubic-bezier(.3,1.6,.5,1);z-index:30}
+  .shelf-item .tip::after{content:"";position:absolute;left:50%;top:100%;width:12px;height:12px;margin:-5px 0 0 -6px;background:var(--cream);border-right:2.5px solid var(--line);border-bottom:2.5px solid var(--line);transform:rotate(45deg)}
+  .shelf-item:hover .tip,.shelf-item:focus-visible .tip{opacity:1;transform:translate(-50%,0) scale(1) rotate(var(--r,-2deg))}
+  .shelf-item:focus-visible{outline:2px dashed var(--red);outline-offset:4px}
+  body.open:not(.solo) .shelf-item{display:none}
+
+  /* ---------- research: docs ---------- */
+  .doc-tabs{display:flex;gap:8px;margin-bottom:10px;flex:none}
+  .doc-tab{display:inline-flex;align-items:center;gap:8px;font:800 14px "Averia Libre",serif;color:var(--ink);background:#fff;border:2px solid var(--line);border-radius:10px;padding:8px 12px;cursor:pointer;box-shadow:2px 2px 0 var(--line);text-decoration:none}
+  .doc-tab[aria-selected="true"]{background:var(--yellow)}
+  .doc-tab:hover{background:var(--cream)} .doc-tab[aria-selected="true"]:hover{background:var(--yellow)}
+  .doc-tab svg{width:16px;height:16px;flex:none}
+  .doc-tab.ext{margin-left:auto}
+  .research .device{height:500px;background:#fff}
+  .research .device iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+
+  /* ---------- process diagram ---------- */
+  .flow{position:relative;flex:none;width:840px;height:520px}
+  .flow .stage-card{position:absolute;top:34px;width:236px;padding:0 8px;text-align:left}
+  .flow .stage-card .no{display:block;font:700 22px/1 "Averia Libre",serif;color:var(--red);margin-top:14px}
+  .flow .stage-card h3{font:700 23px/1.15 "Averia Libre",serif;color:var(--red);margin:4px 0 10px;min-height:48px}
+  .flow .stage-card .art{height:96px;display:flex;align-items:center}
+  .flow .stage-card .art svg{height:92px}
+  .flow .chips{display:flex;flex-direction:column;gap:8px;margin:0}
+  .flow .chip{font:400 17px/1.45 "Averia Libre",serif;color:var(--ink);padding-left:14px;position:relative}
+  .flow .chip::before{content:"";position:absolute;left:0;top:10px;width:5px;height:5px;border-radius:50%;background:var(--ink)}
+  .flow .chip b{color:var(--ink);font-weight:700}
+  .flow .arrow-svg{position:absolute;overflow:visible;pointer-events:none}
+  .reveal .stage-card,.reveal .arrow-svg path{transition:inherit}
+  body.shown .flow .stage-card{animation:cardIn .5s cubic-bezier(.2,.8,.2,1) both}
+  body.shown .flow .s2{animation-delay:.25s} body.shown .flow .s3{animation-delay:.5s}
+  @keyframes cardIn{from{opacity:0;transform:translateY(16px)}}
+  .flow .draw{stroke-dasharray:400;stroke-dashoffset:400}
+  body.shown .flow .draw{animation:draw .7s ease forwards .55s}
+  body.shown .flow .draw.a2{animation-delay:.8s} body.shown .flow .draw.loop{animation-delay:1.1s;animation-duration:1s}
+  @keyframes draw{to{stroke-dashoffset:0}}
+
+  /* ---------- letters (learnings, about) ---------- */
+  .solo-inner{padding:0}
+  .letter-scroll{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;padding:44px 40px 50px;scrollbar-width:thin;scrollbar-color:var(--red) transparent;background:#fff}
+  .letter{position:relative;max-width:760px;margin:0 auto;padding:0 20px;font:400 19px/1.6 "Averia Libre",serif;color:#2A2420}
+  .letter p{margin:0 0 16px}
+  .learn-head{display:flex;align-items:baseline;gap:14px;margin:0 0 6px}
+  .learn-head h1{margin:0}
+  .learn-grid{display:grid;gap:22px;margin-top:20px}
+  .learn{position:relative;padding:4px 0 4px 58px}
+  .learn .n{position:absolute;left:0;top:2px;font:700 30px/1 "Averia Libre",serif;color:var(--red)}
+  .learn.next .n{color:var(--ink-2)}
+  .learn h3{font:700 22px/1.15 "Averia Libre",serif;margin:0 0 4px}
+  .learn p{font:400 19px/1.45 "Averia Libre",serif;margin:0;color:#3a312b}
+  .learn-section{font:400 54px/1 "Cedarville Cursive",cursive;color:var(--red);margin:6px 0 0}
+  .learn-section.second{margin-top:44px}
+  .learn-sub{font:600 16px/1.4 "Averia Libre",serif;color:var(--ink-2);margin:6px 0 0}
+
+
+  /* ---------- plain page (About EdOptimize) ---------- */
+  .page-scroll{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;background:#fff;padding:46px 0 56px;scrollbar-width:thin;scrollbar-color:var(--red) transparent}
+  .page{max-width:740px;margin:0 auto;padding:0 20px;font:400 16.5px/1.6 "Averia Libre",serif;color:var(--ink-2)}
+  .page a{color:var(--red-deep);text-decoration:none;border-bottom:1.5px solid rgba(210,86,64,.45)}
+  .page a:hover{border-bottom-color:var(--red)}
+  .page b{color:var(--ink);font-weight:800}
+  .page h1{font:700 44px/1.02 "Averia Libre",serif;color:var(--ink);margin:2px 0 12px}
+  .page .lead{font-size:19px;line-height:1.55;color:var(--ink);margin:0 0 6px}
+  .page h2{font:700 26px/1.1 "Averia Libre",serif;color:var(--ink);margin:40px 0 14px;padding-top:24px;border-top:2px dashed rgba(11,10,9,.16)}
+  .page h3{font:700 19px/1.2 "Averia Libre",serif;color:var(--red);margin:20px 0 6px}
+  .page p{margin:0 0 12px}
+  .facts{display:grid;grid-template-columns:130px 1fr;margin:0;border-top:1.5px solid #ECE3D3}
+  .facts dt,.facts dd{margin:0;padding:10px 0;border-bottom:1.5px solid #ECE3D3}
+  .facts dt{font-weight:800;color:var(--ink);font-size:14.5px}
+  .facts dd{color:var(--ink-2)}
+  .offer{width:100%;border-collapse:collapse;font-size:15.5px}
+  .offer th{text-align:left;font:800 12.5px "Averia Libre",serif;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2);padding:0 12px 8px 0;border-bottom:2px solid var(--line)}
+  .offer td{padding:11px 12px 11px 0;border-bottom:1.5px solid #ECE3D3;vertical-align:top}
+  .offer td:first-child{width:210px;font-weight:800;color:var(--ink)}
+  .offer .tag{font:400 23px "Cedarville Cursive",cursive;color:var(--red);margin-left:6px}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:0 0 14px}
+  .stats div{padding:4px 0}
+  .stats b{display:block;font:700 34px/1 "Averia Libre",serif;color:var(--red)}
+  .stats span{display:block;font-size:14.5px;line-height:1.35;margin-top:4px}
+  .steps{list-style:none;counter-reset:s;display:grid;grid-template-columns:repeat(4,1fr);gap:22px;padding:0;margin:10px 0 16px}
+  .steps li{counter-increment:s;position:relative;font-weight:700;color:var(--ink);font-size:14.5px;line-height:1.35;border-top:3px solid var(--line);padding-top:10px}
+  .steps li::before{content:counter(s);display:block;font:700 22px/1 "Averia Libre",serif;color:var(--red);margin-bottom:4px}
+  .steps li:not(:last-child)::after{content:"→";position:absolute;right:-18px;top:6px;font-weight:800;color:var(--ink-2)}
+  .quote{font:700 20px/1.45 "Averia Libre",serif;color:var(--ink);border-left:4px solid var(--red);padding:2px 0 2px 16px;margin:0 0 14px}
+  .dots-list{list-style:none;padding:0;margin:0 0 14px}
+  .dots-list li{position:relative;padding:6px 0 6px 22px}
+  .dots-list li::before{content:"";position:absolute;left:2px;top:15px;width:9px;height:9px;border-radius:50%;background:var(--red)}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:28px}
+  .two h3{margin-top:0}
+
+  /* ---------- speech bubble and sign label, drawn in the illustration ---------- */
+  .speech{position:absolute;left:708px;top:433px;width:200px;height:120px;z-index:4;pointer-events:none;transition:opacity .25s ease,transform .3s cubic-bezier(.3,1.4,.5,1);transform-origin:80% 100%}
+  body.thinking .speech,body.open .speech{opacity:0;transform:scale(.85)}
+  .sign-cta{position:absolute;left:975px;top:-2px;width:364px;height:128px;z-index:4;pointer-events:none}
+
+  @media (prefers-reduced-motion: reduce){
+    *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;transition-delay:0s!important}
+  }
+</style>
+</head>
+<body>
+<div id="viewport">
+  <div id="stage">
+    <img id="sky" src="assets/sky.svg" alt="" aria-hidden="true" style="position:absolute;left:-304px;top:0;width:2573px;height:1080px;max-width:none;pointer-events:none">
+    <img id="cafe" src="assets/cafe.svg" alt="Illustrated cafe called Ed Optimize: a menu of case studies on the left, a girl working at a laptop behind the counter, and shelves on the right.">
+
+    <!-- menu hotspots (positions in SVG units) -->
+    <button class="menu-hit" data-study="onboarding" style="left:250px;top:616px;width:112px;height:33px" aria-label="Open Onboarding case study"></button>
+    <button class="menu-hit" data-study="responsive" style="left:250px;top:649px;width:164px;height:31px" aria-label="Open Responsive design case study"></button>
+    <button class="menu-hit" data-study="revamp" style="left:250px;top:681px;width:118px;height:31px" aria-label="Open UI Revamp case study"></button>
+    <p class="menu-heading" aria-hidden="true">User Research &amp;<br>Product Planning</p>
+    <button class="menu-hit" data-study="research" style="left:250px;top:395px;width:192px;height:58px" aria-label="Open User Research and Product Planning"></button>
+    <button class="menu-hit" data-study="process" style="left:250px;top:583px;width:80px;height:27px" aria-label="Open Process"></button>
+    <button class="menu-hit" data-study="learnings" style="left:250px;top:922px;width:124px;height:32px" aria-label="Open Learnings"></button>
+    <button class="menu-hit banner" data-study="about" style="left:722px;top:82px;width:380px;height:108px" aria-label="About EdOptimize"></button>
+
+    <!-- the girl at the counter, taking orders -->
+    <img class="speech" src="assets/bubble.svg" alt="" aria-hidden="true">
+    <img class="sign-cta" src="assets/sign-cta.svg" alt="" aria-hidden="true">
+
+    <!-- little labels on the shelf items -->
+    <span class="shelf-item" tabindex="0" style="left:1385px;top:365px;width:92px;height:110px;--r:-3deg"><span class="tip">sweet tooth</span></span>
+    <span class="shelf-item" tabindex="0" style="left:1515px;top:378px;width:96px;height:96px;--r:2deg"><span class="tip">loads of caffeine</span></span>
+    <span class="shelf-item" tabindex="0" style="left:1635px;top:362px;width:92px;height:112px;--r:-2deg"><span class="tip">endless to-do lists</span></span>
+    <span class="shelf-item" tabindex="0" style="left:1378px;top:552px;width:80px;height:122px;--r:3deg"><span class="tip">pens at the ready</span></span>
+    <span class="shelf-item" tabindex="0" style="left:1500px;top:556px;width:120px;height:118px;--r:-2deg"><span class="tip">midnight munchies</span></span>
+    <span class="shelf-item" tabindex="0" style="left:1640px;top:550px;width:112px;height:124px;--r:2deg"><span class="tip">good music, all kinds</span></span>
+    <span class="shelf-item" tabindex="0" style="left:1390px;top:782px;width:120px;height:88px;--r:-3deg"><span class="tip">always reading</span></span>
+    <span class="shelf-item" tabindex="0" style="left:1564px;top:744px;width:72px;height:112px;--r:2deg"><span class="tip">movie nights</span></span>
+    <span class="shelf-item" tabindex="0" style="left:1636px;top:764px;width:100px;height:104px;--r:-2deg"><span class="tip">extra butter please</span></span>
+
+    <button class="menu-hit" data-study="website" style="left:250px;top:733px;width:184px;height:40px" aria-label="Open Website design case study"></button>
+
+    <!-- thought bubble from the girl -->
+    <div id="thought" aria-hidden="true">
+      <span class="puff p1" style="left:985px;top:528px;width:18px;height:18px"></span>
+      <span class="puff p2" style="left:1008px;top:493px;width:26px;height:26px"></span>
+      <span class="puff p3" style="left:1030px;top:450px;width:36px;height:36px"></span>
+      <svg class="cloud" viewBox="0 0 250 170">
+        <path d="M60 140c-30 2-50-18-44-42 4-18 22-28 38-24 2-26 28-44 54-36 12-20 44-26 62-8 22-10 50 4 52 30 22 6 30 34 14 52 6 22-14 38-34 32-12 16-40 18-54 6-16 10-40 8-52-4-12 4-28 2-36-6z" fill="#fff" stroke="#0B0A09" stroke-width="4" stroke-linejoin="round"/>
+        <!-- tiny "old → new" screen doodle -->
+        <rect x="58" y="62" width="56" height="40" rx="5" fill="#EFE9E0" stroke="#0B0A09" stroke-width="3"/>
+        <path d="M66 72h22M66 80h36M66 88h28" stroke="#9a948c" stroke-width="3" stroke-linecap="round"/>
+        <path d="M122 82h18m-7-7 7 7-7 7" fill="none" stroke="#D25640" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <rect x="148" y="62" width="56" height="40" rx="5" fill="#fff" stroke="#0B0A09" stroke-width="3"/>
+        <rect x="148" y="62" width="14" height="40" rx="3" fill="#486D4C"/>
+        <path d="M168 72h28M168 81h20" stroke="#D25640" stroke-width="3" stroke-linecap="round"/>
+        <rect x="168" y="88" width="16" height="7" rx="2" fill="#FBBF51"/>
+      </svg>
+    </div>
+
+    <!-- white blind over the kitchen -->
+    <section id="screen" aria-label="Case study visuals">
+      <div class="rail"></div>
+
+      <div class="view revamp screen-inner">
+        <div class="revamp-scroll" id="revampScroll">
+          <div class="proto-head reveal d1">
+            <h1 class="proto-title"><span id="protoName">Old desktop UI</span><span class="pill" id="protoPill">Before</span></h1>
+            <p class="proto-note">A walkthrough of the <b>desktop flow</b>. Play, pause or drag the bar to jump to any moment.</p>
+          </div>
+          <div class="device reveal d2"><video id="vid" controls playsinline preload="metadata"></video></div>
+          <button class="more-hint" id="moreHint" type="button">Scroll for the prototypes ↓</button>
+
+          <!-- New UI only: live prototypes, loaded as they scroll into view -->
+          <div class="protos" id="protos">
+            <h2 class="protos-title">Prototype in progress</h2>
+            <p class="protos-sub">Live, clickable prototypes explored while revamping the desktop UI.</p>
+            <div class="proto-item"><h3><span><span class="n">01</span>Class creator</span><a href="https://class-creator-buddy-81.lovable.app/" target="_blank" rel="noopener">Open ↗</a></h3>
+              <div class="device" data-src="https://class-creator-buddy-81.lovable.app/"><span class="loading">loading…</span></div></div>
+            <div class="proto-item"><h3><span><span class="n">02</span>Assessment table with filters</span><a href="https://crisp-assessments.lovable.app/" target="_blank" rel="noopener">Open ↗</a></h3>
+              <div class="device" data-src="https://crisp-assessments.lovable.app/"><span class="loading">loading…</span></div></div>
+            <div class="proto-item"><h3><span><span class="n">03</span>Create assessment</span><a href="https://guitar-fever-81756483.figma.site/" target="_blank" rel="noopener">Open ↗</a></h3>
+              <div class="device" data-src="https://guitar-fever-81756483.figma.site/"><span class="loading">loading…</span></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="view research screen-inner">
+        <div class="proto-head reveal d1">
+          <h1 class="proto-title"><span>Research &amp; planning</span><span class="pill">Documents</span></h1>
+          <p class="proto-note">The working documents behind the research. <b>Scroll inside</b> to read.</p>
+        </div>
+        <div class="doc-tabs reveal d2" role="tablist" id="docTabs">
+          <button class="doc-tab" role="tab" aria-selected="true" data-doc="https://docs.google.com/document/d/1amlXmYvX8EKsaIFKW-3zzPrUmpNyrtzu1XTFwmOzMbQ/preview" data-open="https://docs.google.com/document/d/1amlXmYvX8EKsaIFKW-3zzPrUmpNyrtzu1XTFwmOzMbQ/edit?usp=sharing">
+            <svg viewBox="0 0 16 16"><path d="M3 1h7l3 3v11H3z" fill="#4A86E8" stroke="#0B0A09" stroke-width="1.4"/><path d="M5.5 8h5M5.5 10.5h5" stroke="#fff" stroke-width="1.4"/></svg>User testing</button>
+          <button class="doc-tab" role="tab" aria-selected="false" data-doc="https://docs.google.com/document/d/1btLnCowdWQhf4xFvaBO3_SWq-iVAaU-Q6qZDu4StplA/preview" data-open="https://docs.google.com/document/d/1btLnCowdWQhf4xFvaBO3_SWq-iVAaU-Q6qZDu4StplA/edit?usp=sharing">
+            <svg viewBox="0 0 16 16"><path d="M3 1h7l3 3v11H3z" fill="#4A86E8" stroke="#0B0A09" stroke-width="1.4"/><path d="M5.5 8h5M5.5 10.5h5" stroke="#fff" stroke-width="1.4"/></svg>Story sequence</button>
+          <a class="doc-tab ext" href="https://app.notion.com/p/7ddf4fb6afb340b292393d7936c2a16d?v=32a035e8c9664bc08bcba65c1432e6db" target="_blank" rel="noopener">
+            <svg viewBox="0 0 16 16"><rect x="1.5" y="1.5" width="13" height="13" rx="2.5" fill="#fff" stroke="#0B0A09" stroke-width="1.6"/><path d="M5 11.5V4.5l6 7v-7" fill="none" stroke="#0B0A09" stroke-width="1.6" stroke-linejoin="round"/></svg>Feature planning in Notion ↗</a>
+          <a class="doc-tab" id="docOpen" href="#" target="_blank" rel="noopener" title="Open this document in Google Docs">Open doc ↗</a>
+        </div>
+        <div class="device reveal d3" id="docDevice"><span class="loading" style="position:absolute;inset:0;display:grid;place-items:center;font:400 35px "Cedarville Cursive",cursive;color:var(--ink-2)">loading…</span></div>
+      </div>
+
+      <div class="view process screen-inner">
+        <div class="proto-head reveal d1">
+          <h1 class="proto-title"><span>How I worked</span><span class="pill">Process</span></h1>
+          <p class="proto-note">From what people need, to rough sketches, to high fidelity with AI.</p>
+        </div>
+        <div class="flow reveal d2" aria-label="Process: understand the requirement, wireframe by hand, then use AI to reach high fidelity and prototypes, with a loop back to review.">
+          <!-- 1 -->
+          <div class="stage-card s1" style="left:6px">
+            <span class="no">1</span>
+            <div class="art"><svg viewBox="0 0 120 92" aria-hidden="true">
+              <circle cx="34" cy="40" r="13" fill="#FBBF51" stroke="#0B0A09" stroke-width="3.5"/><path d="M12 84c0-14 10-24 22-24s22 10 22 24" fill="#486D4C" stroke="#0B0A09" stroke-width="3.5"/>
+              <circle cx="86" cy="40" r="13" fill="#F4B9AE" stroke="#0B0A09" stroke-width="3.5"/><path d="M64 84c0-14 10-24 22-24s22 10 22 24" fill="#D25640" stroke="#0B0A09" stroke-width="3.5"/>
+              <path d="M8 6h42a6 6 0 0 1 6 6v8a6 6 0 0 1-6 6H24l-8 7v-7H8a6 6 0 0 1-6-6v-8a6 6 0 0 1 6-6z" fill="#fff" stroke="#0B0A09" stroke-width="3"/><path d="M12 14h30M12 19h20" stroke="#D25640" stroke-width="3" stroke-linecap="round"/>
+              <path d="M112 4H72a6 6 0 0 0-6 6v8a6 6 0 0 0 6 6h24l8 7v-7h8a6 6 0 0 0 6-6v-8a6 6 0 0 0-6-6z" fill="#fff" stroke="#0B0A09" stroke-width="3"/><text x="92" y="20" text-anchor="middle" font-family="Averia Libre" font-weight="700" font-size="14" fill="#0B0A09">?!</text>
+            </svg></div>
+            <h3>Understand the requirement</h3>
+            <div class="chips">
+              <span class="chip">Users + product team: <b>what are they looking for?</b></span>
+              <span class="chip"><b>Minimal change,</b> maximum impact</span>
+              <span class="chip">Runs at <b>government scale</b>, so keep it stable</span>
+            </div>
+          </div>
+          <!-- 2 -->
+          <div class="stage-card s2" style="left:307px">
+            <span class="no">2</span>
+            <div class="art"><svg viewBox="0 0 130 92" aria-hidden="true">
+              <rect x="6" y="8" width="58" height="76" rx="4" fill="#fff" stroke="#0B0A09" stroke-width="3.5" transform="rotate(-6 35 46)"/>
+              <path d="M16 26h34M16 38h20M16 50h28" stroke="#9a948c" stroke-width="3" stroke-linecap="round" transform="rotate(-6 35 46)"/>
+              <path d="M18 62h12v10H18z" fill="none" stroke="#D25640" stroke-width="3" transform="rotate(-6 35 46)"/>
+              <path d="M44 74l22-34 7 5-22 34-9 4z" fill="#FBBF51" stroke="#0B0A09" stroke-width="3" stroke-linejoin="round"/>
+              <rect x="74" y="16" width="52" height="66" rx="7" fill="#fff" stroke="#0B0A09" stroke-width="3.5"/>
+              <rect x="80" y="24" width="40" height="12" rx="3" fill="#B9D7B0" stroke="#0B0A09" stroke-width="2"/>
+              <rect x="80" y="42" width="18" height="16" rx="3" fill="#F4B9AE" stroke="#0B0A09" stroke-width="2"/><rect x="102" y="42" width="18" height="16" rx="3" fill="#FBBF51" stroke="#0B0A09" stroke-width="2"/>
+              <path d="M80 66h30" stroke="#9a948c" stroke-width="3" stroke-linecap="round"/>
+            </svg></div>
+            <h3>Wireframe by hand</h3>
+            <div class="chips">
+              <span class="chip"><b>Pen and paper</b> to ideate the flow</span>
+              <span class="chip"><b>Figma</b> to see how the UI looks</span>
+              <span class="chip">Whichever is faster for the question at hand</span>
+            </div>
+          </div>
+          <!-- 3 -->
+          <div class="stage-card s3" style="left:608px">
+            <span class="no">3</span>
+            <div class="art"><svg viewBox="0 0 130 92" aria-hidden="true">
+              <rect x="22" y="14" width="96" height="64" rx="7" fill="#fff" stroke="#0B0A09" stroke-width="3.5"/>
+              <rect x="22" y="14" width="22" height="64" rx="5" fill="#486D4C" stroke="#0B0A09" stroke-width="3"/>
+              <rect x="52" y="24" width="56" height="10" rx="3" fill="#D25640"/><rect x="52" y="40" width="26" height="28" rx="4" fill="#FBBF51" stroke="#0B0A09" stroke-width="2"/><rect x="82" y="40" width="26" height="28" rx="4" fill="#F4B9AE" stroke="#0B0A09" stroke-width="2"/>
+              <path d="M14 10l3 8 8 3-8 3-3 8-3-8-8-3 8-3z" fill="#FBBF51" stroke="#0B0A09" stroke-width="2.5" stroke-linejoin="round"/>
+              <path d="M118 66l2 5 5 2-5 2-2 5-2-5-5-2 5-2z" fill="#D25640" stroke="#0B0A09" stroke-width="2" stroke-linejoin="round"/>
+              <path d="M96 76l6 12 3-6 6 3z" fill="#fff" stroke="#0B0A09" stroke-width="2.5" stroke-linejoin="round"/>
+            </svg></div>
+            <h3>AI to high fidelity</h3>
+            <div class="chips">
+              <span class="chip">Rough wireframes + <b>specific prompts</b></span>
+              <span class="chip"><b>Clean UI</b> and working <b>interactions</b>, faster</span>
+              <span class="chip">No hand-prototyping, so more time to <b>decide</b></span>
+            </div>
+          </div>
+          <!-- arrows -->
+          <svg class="arrow-svg" style="left:236px;top:120px" width="70" height="40" viewBox="0 0 70 40" aria-hidden="true"><path class="draw" d="M4 22c18-10 36-12 56-4" fill="none" stroke="#0B0A09" stroke-width="4" stroke-linecap="round"/><path d="M50 8l12 10-15 6" fill="none" stroke="#0B0A09" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <svg class="arrow-svg" style="left:537px;top:120px" width="70" height="40" viewBox="0 0 70 40" aria-hidden="true"><path class="draw a2" d="M4 22c18-10 36-12 56-4" fill="none" stroke="#0B0A09" stroke-width="4" stroke-linecap="round"/><path d="M50 8l12 10-15 6" fill="none" stroke="#0B0A09" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+      </div>
+
+      <div class="view learnings screen-inner solo-inner">
+        <div class="letter-scroll reveal d1">
+          <div class="letter">
+            <p class="learn-section">What I learned</p>
+            <p class="learn-sub">Five things this internship taught me.</p>
+            <div class="learn-grid">
+              <div class="learn"><span class="n">01</span><h3>Progress over perfection</h3><p>Designs improve when they are put out, tested, and reviewed. Instead of waiting for the perfect solution, it is better to make progress, gather feedback, and keep refining.</p></div>
+              <div class="learn"><span class="n">02</span><h3>Understanding beyond the brief</h3><p>Interpreting a requirement literally isn't enough. I need to understand the intention behind it, balance what stakeholders want with what users need, and translate both into meaningful design decisions.</p></div>
+              <div class="learn"><span class="n">03</span><h3>Designing with constraints</h3><p>Good design doesn't always require major changes. On an existing product, small, thoughtful improvements can make a significant difference, especially when working with established systems.</p></div>
+              <div class="learn"><span class="n">04</span><h3>Using AI as a design tool</h3><p>AI helped me move from rough wireframes to high-fidelity designs and prototypes faster. I learned to use it to speed up execution while keeping the design thinking and decisions in my hands.</p></div>
+              <div class="learn"><span class="n">05</span><h3>Understanding my interests</h3><p>The internship strengthened my interest in educational products, and showed me how much I enjoy the creative side of design: storytelling, illustration, and visual exploration.</p></div>
+            </div>
+            <p class="learn-section second">What I want to improve next</p>
+            <p class="learn-sub">Where I want to grow from here.</p>
+            <div class="learn-grid">
+              <div class="learn next"><span class="n">01</span><h3>Deeper problem understanding</h3><p>Asking the right questions, understanding the intent behind feedback, and identifying the actual problem before jumping into solutions.</p></div>
+              <div class="learn next"><span class="n">02</span><h3>Technical understanding</h3><p>Understanding AI tools and development workflows more deeply, including the differences between closed and open AI models, to make more informed design decisions.</p></div>
+              <div class="learn next"><span class="n">03</span><h3>Active listening and note-taking</h3><p>Documenting meetings by identifying key decisions, priorities, and action items instead of relying entirely on transcripts, so I can separate what matters from background discussion.</p></div>
+              <div class="learn next"><span class="n">04</span><h3>Balancing creativity with usability</h3><p>Knowing when to explore creative directions and when to simplify. A design should be distinctive, but it should also communicate clearly and respect the user's time.</p></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="view about screen-inner solo-inner">
+        <div class="page-scroll reveal d1">
+          <article class="page">
+            <p class="eyebrow">company &amp; project overview</p>
+            <h1>EdOptimize &amp; Smart Paper</h1>
+            <p class="lead"><a href="https://www.edoptimize.com/index.html" target="_blank" rel="noopener">EdOptimize</a> is an AI and edtech company focused on “Optimizing Human Potential” through research, human-centred design and technology.</p>
+
+            <h2>Company profile</h2>
+            <dl class="facts">
+              <dt>Legal name</dt><dd>EdOptimize Solutions Private Limited</dd>
+              <dt>CIN</dt><dd>U62091GJ2024PTC152820</dd>
+              <dt>Founded</dt><dd>2024, growing out of Playpower Labs (2011), where the founders spent 12+ years on learning-science and educational AI research</dd>
+              <dt>Founders</dt><dd>Nirmal Patel and Dr. Derek Lomas</dd>
+              <dt>Locations</dt><dd>Vadodara and Ahmedabad, Gujarat, India</dd>
+              <dt>Address</dt><dd>C-13, Shop 1, Snehkunj Society, Panchvati, Vadodara, Gujarat 390016, India</dd>
+              <dt>Contact</dt><dd><a href="https://www.edoptimize.com" target="_blank" rel="noopener">www.edoptimize.com</a> · contactus@edoptimize.com · +91 9327743297</dd>
+              <dt>Serves</dt><dd>Schools, universities, businesses, government, NGOs and researchers</dd>
+            </dl>
+
+            <h2>Services, products and areas of work</h2>
+            <table class="offer">
+              <thead><tr><th>Offering</th><th>What it does</th></tr></thead>
+              <tbody>
+                <tr><td><a href="https://www.getsmartpaper.com/" target="_blank" rel="noopener"><b>Smart Paper</b></a> <span class="tag">flagship</span></td><td>AI assessment platform that digitises, grades and analyses handwritten work with 95%+ accuracy</td></tr>
+                <tr><td>AI Services</td><td>Rapid prototyping of human-centred AI applications</td></tr>
+                <tr><td>Data Science</td><td>AI-driven data mining and product analytics</td></tr>
+                <tr><td>Learning Engineering</td><td>Evidence-based improvement of digital learning and tutoring platforms</td></tr>
+                <tr><td>Technology R&amp;D</td><td>Reliable, high-performance software engineering</td></tr>
+              </tbody>
+            </table>
+
+            <h2>Smart Paper at a glance</h2>
+            <div class="stats">
+              <div><b>65,000</b><span>government schools in India</span></div>
+              <div><b>5M+</b><span>student assessments</span></div>
+              <div><b>95%+</b><span>grading accuracy</span></div>
+            </div>
+            <p>Recognised by UNESCO, Schmidt Futures, CII and the Aegis Graham Bell Awards.</p>
+            <h3>How it works</h3>
+            <ol class="steps">
+              <li>Create and print worksheets</li>
+              <li>Students write on paper</li>
+              <li>Teacher scans with a phone</li>
+              <li>AI grades and gives analytics</li>
+            </ol>
+            <p><b>Key features:</b> handwriting digitisation, rubric-based grading suggestions, insights on student misconceptions, and a searchable record of progress, across maths, languages, science and social studies.</p>
+
+            <h2>Keeping handwriting alive</h2>
+            <p class="quote">Smart Paper believes “Paper is Smart.” Students keep writing by hand, and AI handles the work that comes after.</p>
+            <ul class="dots-list">
+              <li><b>Why paper:</b> about 20% better comprehension than screens, stronger memory, higher test scores, and no digital distractions.</li>
+              <li><b>Why it matters now:</b> handwritten work is authentically the student's own in the age of AI.</li>
+              <li><b>Where AI helps:</b> reading even messy handwriting, suggesting scores, spotting common errors and keeping digital records.</li>
+            </ul>
+            <p>The result is a balance: technology supports the tradition of handwriting instead of replacing it.</p>
+
+            <h2>How a feature gets built</h2>
+            <div class="two">
+              <div>
+                <h3>From conversation to design</h3>
+                <p>Teachers use Smart Paper to create classes and assessments, upload scanned answer sheets, and get results and analytics. Every feature starts with a conversation: the product manager, engineers and designer talk through how teachers work, what slows them down, and what to build or improve.</p>
+                <p>Ideas become rough sketches, then UI and UX flows, polished screens and clickable prototypes, with AI helping to try layouts quickly. Designs work across screen sizes, and the product manager signs off before anything is built.</p>
+              </div>
+              <div>
+                <h3>From design to development</h3>
+                <p>Engineers then work out the technical approach, from APIs and data to how the AI evaluates answer sheets, weighing accuracy, speed and scale. A good-looking solution is not useful if it is slow, unreliable or fails at scale.</p>
+                <p>Approved designs are built by reusing components from the codebase, writing new ones where needed, and connecting them to the backend. Each feature is tested, and the designer checks the built screens against the original designs.</p>
+              </div>
+            </div>
+
+            <h2>Where I fit in</h2>
+            <p>I am the designer in the process above, involved from the first conversation to the final design check.</p>
+            <ul class="dots-list">
+              <li><b>Research and ideas:</b> understanding how teachers work and bringing my own ideas to product discussions.</li>
+              <li><b>Product design:</b> turning those ideas into sketches, UI/UX flows, responsive screens and clickable prototypes for PM sign-off.</li>
+              <li><b>Design review:</b> checking built screens against the original designs before release.</li>
+              <li><b>Website design and storytelling:</b> designing the website and shaping its story, giving the founder a clear, confident statement about his product.</li>
+            </ul>
+          </article>
+        </div>
+      </div>
+
+      <div class="view onboarding screen-inner">
+        <div class="revamp-scroll scroll-col">
+          <div class="proto-head reveal d1">
+            <h1 class="proto-title"><span>Onboarding</span><span class="pill wip">Prototypes</span></h1>
+            <p class="proto-note">Live, clickable prototypes. <b>Scroll down</b> to move from one to the next.</p>
+          </div>
+          <div class="reveal d2">
+            <div class="proto-item"><h3><span><span class="n">01</span>First questions for the user</span><a href="https://wise-welcome-flow.lovable.app/" target="_blank" rel="noopener">Open ↗</a></h3>
+              <div class="device" data-src="https://wise-welcome-flow.lovable.app/"><span class="loading">loading…</span></div></div>
+            <div class="proto-item"><h3><span><span class="n">02</span>Onboarding ideation</span><a href="https://delete-zaffre-18596081.figma.site/" target="_blank" rel="noopener">Open ↗</a></h3>
+              <div class="device" data-src="https://delete-zaffre-18596081.figma.site/"><span class="loading">loading…</span></div></div>
+            <div class="proto-item"><h3><span><span class="n">03</span>Onboarding final</span></h3>
+              <div class="device"><div class="scroller"><img src="assets/onboarding-final.jpg" alt="Final onboarding design: sign-in, profile setup questions, a 'Why Smart Paper' walkthrough, and the home dashboard before and after classes are added."></div></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="view responsive screen-inner">
+        <div class="proto-head reveal d1">
+          <h1 class="proto-title"><span id="rName">Old mobile UI</span><span class="pill" id="rPill">Before</span></h1>
+          <p class="proto-note">Screen recordings of the <b>mobile experience</b>. Play, pause or drag the bar to jump around.</p>
+        </div>
+        <div class="phones reveal d2" id="phones"></div>
+      </div>
+
+      <div class="view website screen-inner">
+        <div class="proto-head reveal d1">
+          <h1 class="proto-title"><span>Smart Paper website</span><span class="pill" id="webPill">Direction 01</span></h1>
+          <p class="proto-note" id="webNote"></p>
+        </div>
+        <div class="device reveal d2" id="webDevice">
+          <div class="slide" data-kind="image">
+            <div class="scroller" id="imgScroller"><img src="assets/first-web.jpg" alt="First design direction for the Smart Paper website: clean vector illustrations and a step-by-step explanation of the product." loading="lazy"></div>
+            <span class="scroll-hint" id="scrollHint">Scroll ↓</span>
+          </div>
+          <div class="slide" data-kind="frame" data-src="https://panda-puzzle-02057820.figma.site"></div>
+          <div class="slide" data-kind="frame" data-src="assets/folder-design.html"></div>
+          <div class="slide insight">
+            <svg class="eye" viewBox="0 0 170 110" aria-hidden="true">
+              <g class="rays"><line x1="85" y1="6" x2="85" y2="20"/><line x1="40" y1="16" x2="48" y2="28"/><line x1="130" y1="16" x2="122" y2="28"/><line x1="10" y1="40" x2="22" y2="46"/><line x1="160" y1="40" x2="148" y2="46"/></g>
+              <g class="lid">
+                <path d="M15 68C38 38 62 28 85 28s47 10 70 40c-23 30-47 40-70 40S38 98 15 68z" fill="#fff" stroke="#0B0A09" stroke-width="5" stroke-linejoin="round"/>
+                <circle cx="85" cy="68" r="22" fill="#486D4C" stroke="#0B0A09" stroke-width="4"/>
+                <circle cx="85" cy="68" r="10" fill="#0B0A09"/>
+                <circle cx="91" cy="61" r="4" fill="#fff"/>
+              </g>
+            </svg>
+            <p class="kicker">the eye-opener</p>
+            <blockquote>The website wasn’t meant to be a source of revenue or simply a platform to promote Smart Paper. The founder wanted to create <b>a statement on the internet about his product</b>, something he genuinely believed in and was proud to share with the world.</blockquote>
+          </div>
+          <div class="slide" data-kind="frame" data-src="assets/hand-to-mind.html"></div>
+          <div class="slide" data-kind="frame" data-src="assets/illustrated-story.html"></div>
+          <div class="slide wip">
+            <svg viewBox="0 0 120 120" aria-hidden="true">
+              <rect x="14" y="20" width="70" height="88" rx="6" fill="#fff" stroke="#0B0A09" stroke-width="4"/>
+              <path d="M26 42h46M26 56h34M26 70h40" stroke="#D25640" stroke-width="4" stroke-linecap="round" stroke-dasharray="6 7"/>
+              <g class="pencil"><path d="M70 92l34-48 10 7-34 48-14 6z" fill="#FBBF51" stroke="#0B0A09" stroke-width="4" stroke-linejoin="round"/><path d="M66 105l4-13 10 7z" fill="#F7E3C4" stroke="#0B0A09" stroke-width="3" stroke-linejoin="round"/></g>
+            </svg>
+            <span class="tape">Work in progress</span>
+            <h2>Static illustrations</h2>
+            <p>Colourful, abstract illustrations that tell the story faster. Currently being drawn.</p>
+          </div>
+          <button class="expand" id="expandBtn" type="button" title="View full screen">⤢ Full screen</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- beige case-study panel over the shelves -->
+    <aside id="panel" aria-label="Case study">
+      <div class="rail"></div>
+
+      <div class="view revamp panel-inner">
+        <div class="toggle reveal d1" id="toggle" data-v="old" role="group" aria-label="Choose version">
+          <span class="thumb"></span>
+          <button type="button" data-v="old" aria-pressed="true">Old UI</button>
+          <button type="button" data-v="new" aria-pressed="false">New UI</button>
+        </div>
+        <div class="copy reveal d2" id="copy"></div>
+      </div>
+
+      <div class="view research panel-inner">
+        <div class="copy reveal d1" style="margin-top:0">
+          <p class="eyebrow">where it started</p>
+          <h2>User research &amp; product planning</h2>
+          <p class="lead">With the core product already in place, the focus was on understanding user needs, identifying opportunities, and planning future improvements.</p>
+          <ul>
+            <li><b>User interviews:</b> spoke with school and tuition teachers about their workflows, tools, and pain points, which showed the gap between personalised tuition needs and teaching at scale.</li>
+            <li><b>Competitive analysis:</b> studied existing products to find feature gaps, understand market expectations, and explore expansion into the private education sector.</li>
+            <li><b>Feature prioritisation:</b> consolidated existing and potential features into a planning framework, mapped to user needs, product goals, and feasibility.</li>
+          </ul>
+          <div class="takeaway">The goal: move from individual user insights to a structured roadmap that balances user needs, business opportunities, and the realities of working at scale.</div>
+        </div>
+      </div>
+
+      <div class="view process panel-inner">
+        <div class="copy reveal d1" style="margin-top:0">
+          <p class="eyebrow">how I worked</p>
+          <h2>My design process</h2>
+          <h3>1 · Understand the need</h3>
+          <p>Talked to users and the product team to learn what they were really looking for. Most wanted <b>minimal changes with more impact</b>: the product runs at government level, so stability mattered more than novelty.</p>
+          <h3>2 · Sketch it rough</h3>
+          <p>Pen and paper to ideate flows. Figma when I needed to see how the UI would actually look.</p>
+          <h3>3 · Let AI speed it up</h3>
+          <p>AI turned rough wireframes into clean, high-fidelity screens and interactive prototypes. I stayed specific about what I wanted, without hand-prototyping every interaction.</p>
+          <div class="takeaway">The thinking stays mine. The execution gets faster.</div>
+        </div>
+      </div>
+
+      <div class="view onboarding panel-inner">
+        <div class="copy reveal d1" style="margin-top:0">
+          <p class="eyebrow">user interface</p>
+          <h2>Improving the onboarding experience</h2>
+          <p class="lead"><b>Problem:</b> Many teachers logged in but failed to create their first assessment, making it difficult for them to get started with the product.</p>
+          <p>I proposed an onboarding experience to guide teachers towards their first assessment. After exploring different approaches, including a checklist inspired by tools like Claude and Notion, I shifted towards a more action-oriented approach.</p>
+          <ul>
+            <li><b>Pre-onboarding:</b> introduced a walkthrough to familiarise teachers with the key features before they entered the platform.</li>
+            <li><b>Guided homepage:</b> introduced a homepage for new users, highlighting key actions like creating an assessment, creating a class, and scanning papers.</li>
+            <li><b>Making AI discoverable:</b> brought the AI-assisted assessment creation option out of the hidden menu and made it more visible to help teachers get started.</li>
+            <li><b>Progress tracking:</b> added a checklist that ticks off tasks as teachers complete them, helping them track their progress.</li>
+          </ul>
+          <div class="takeaway">The goal was to reduce the effort required to get started and guide teachers towards creating their first assessment.</div>
+        </div>
+      </div>
+
+      <div class="view responsive panel-inner">
+        <div class="toggle reveal d1" id="rToggle" data-v="old" role="group" aria-label="Choose version">
+          <span class="thumb"></span>
+          <button type="button" data-v="old" aria-pressed="true">Old UI</button>
+          <button type="button" data-v="new" aria-pressed="false">New UI</button>
+        </div>
+        <div class="copy reveal d2" id="rCopy"></div>
+      </div>
+
+      <div class="view website panel-inner">
+        <div class="copy reveal d1" id="webCopy" aria-live="polite"></div>
+        <div class="stepnav reveal d2">
+          <div class="dots" id="dots" aria-label="Steps"></div>
+          <div class="arrows">
+            <button class="arrow" id="prevStep" aria-label="Previous step">←</button>
+            <button class="arrow" id="nextStep" aria-label="Next step">→</button>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <button id="closeBtn" aria-label="Close case study" title="Back to the cafe (Esc)">✕</button>
+  </div>
+</div>
+
+<script>
+(() => {
+  const $ = s => document.querySelector(s);
+  const body = document.body, stage = $('#stage');
+
+  /* ---------- fit the 1920×1080 stage to the window ---------- */
+  function fit(){ const s = Math.min(innerWidth/1920, innerHeight/1080); stage.style.zoom = s; stage.style.left = (innerWidth - 1920*s)/2/s + "px"; stage.style.top = (innerHeight - 1080*s)/2/s + "px"; }
+  addEventListener('resize', fit); fit();
+
+  /* ================= UI revamp ================= */
+  const COPY = {
+    old: `
+      <p class="eyebrow">before the revamp</p>
+      <h2>The problem with the old UI</h2>
+      <p>The previous desktop UI lacked visual consistency and felt closer to a wireframe than a finished product. Several usability and heuristic issues made the experience less intuitive.</p>
+      <p>Navigation flows were unclear, key elements lacked visibility, and users could struggle to find features or understand where to go next.</p>
+      <h3>The goal</h3>
+      <p>Improve the overall user experience without making drastic changes to the existing product. Instead of redesigning everything from scratch, the focus was on identifying usability gaps and making minimal but meaningful design improvements.</p>`,
+    new: `
+      <p class="eyebrow">after the revamp</p>
+      <h2>A cleaner, consistent desktop UI</h2>
+      <p>The revamped UI focuses on creating a cleaner, more minimal, and consistent experience while retaining the familiarity of the existing product.</p>
+      <ul>
+        <li><b>Visual consistency:</b> improved alignment, styling, and consistency across screens for a more cohesive interface.</li>
+        <li><b>Clearer navigation:</b> refined flows make moving between features more intuitive.</li>
+        <li><b>Better discoverability:</b> improved visibility and placement of key elements so users find features more easily.</li>
+        <li><b>Improved usability:</b> addressed interface and heuristic issues to reduce confusion and make interactions more straightforward.</li>
+        <li><b>Minimal redesign:</b> preserved the existing product structure wherever possible, focusing on targeted changes over unnecessary redesign.</li>
+      </ul>
+      <p>The new desktop UI brings greater clarity, consistency, and ease of use. By focusing on the areas that needed improvement rather than changing everything, the revamp creates a more polished and intuitive experience while keeping the product familiar to existing users.</p>`
+  };
+  const vid = $('#vid');
+  const VIDEOS = { old: 'assets/old-ui.mp4', new: 'assets/new-ui.mp4' };
+  const toggle = $('#toggle');
+  let version = 'old';
+  function setVersion(v){
+    version = v;
+    toggle.dataset.v = v;
+    toggle.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === v));
+    $('#protoName').textContent = v === 'old' ? 'Old desktop UI' : 'New desktop UI';
+    const pill = $('#protoPill'); pill.textContent = v === 'old' ? 'Before' : 'After'; pill.classList.toggle('new', v === 'new');
+    $('#copy').innerHTML = `<div class="copy-pane">${COPY[v]}</div>`; $('#copy').scrollTop = 0;
+    vid.pause(); vid.src = VIDEOS[v]; vid.load();
+    body.dataset.v = v; $('#revampScroll').scrollTop = 0;
+    if (v === 'new') loadFrames($('#protos'));
+  }
+  toggle.addEventListener('click', e => { const b = e.target.closest('button'); if (b && b.dataset.v !== version) setVersion(b.dataset.v); });
+  $('#moreHint').addEventListener('click', () => $('#protos').scrollIntoView({ block: 'start' }));
+
+  // live prototypes load the first time their section is shown, then stay loaded
+  function loadFrames(root){
+    root.querySelectorAll('.proto-item .device[data-src]').forEach(d => {
+      if (d.querySelector('iframe')) return;
+      const f = document.createElement('iframe');
+      f.src = d.dataset.src; f.title = d.closest('.proto-item').querySelector('h3').textContent; f.allow = 'fullscreen; clipboard-write';
+      f.onload = () => d.querySelector('.loading')?.remove();
+      d.appendChild(f);
+    });
+  }
+
+  /* ================= Responsive design ================= */
+  const R_COPY = {
+    old: `
+      <p class="eyebrow">before</p>
+      <h2>Understanding responsive design</h2>
+      <p class="lead">The existing platform was primarily designed for desktop, with assessments, classes, and results displayed in tabular formats.</p>
+      <p>On mobile, these tables required horizontal scrolling, making it difficult to navigate, review results, and manage assessments comfortably.</p>
+      <p>There were also overlapping ways of viewing results, adding unnecessary complexity to the experience.</p>
+      <h3>The challenge</h3>
+      <p>Understand how information-heavy desktop interfaces behave on smaller screens, identify usability issues, and explore how responsive design can preserve functionality while making information easier to navigate and access.</p>`,
+    new: `
+      <p class="eyebrow">after</p>
+      <h2>Redesigning the mobile experience</h2>
+      <p class="lead">The focus was to prioritise information based on user research and interviews, deciding what needed immediate visibility and what could be placed within deeper layers.</p>
+      <ul>
+        <li><b>Tables to cards:</b> replaced dense tables with cards to make information easier to scan and actions easier to access, drawing inspiration from responsive products like Notion.</li>
+        <li><b>Simplifying results:</b> removed less essential information and combined the scroll and focus views into one interface. Users could switch between viewing all answers for a student and a particular question across students.</li>
+        <li><b>Simplifying paper management:</b> used cards to make actions like viewing scans, re-uploading, and deleting papers more accessible.</li>
+        <li><b>Improving navigation:</b> introduced vertical scrolling and a bottom navigation bar to make the experience easier to navigate on mobile.</li>
+      </ul>
+      <div class="takeaway">The goal was to prioritise essential information, simplify navigation, and retain key functionality without overwhelming the user.</div>`
+  };
+  const R_VIDEOS = { old: [['assets/old-mobile.mp4', '']], new: [['assets/new-mobile-1.mp4', 'part 1'], ['assets/new-mobile-2.mp4', 'part 2']] };
+  const rToggle = $('#rToggle');
+  let rVersion = 'old';
+  function setRVersion(v){
+    rVersion = v;
+    rToggle.dataset.v = v;
+    rToggle.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === v));
+    $('#rName').textContent = v === 'old' ? 'Old mobile UI' : 'New mobile UI';
+    const pill = $('#rPill'); pill.textContent = v === 'old' ? 'Before' : 'After'; pill.classList.toggle('new', v === 'new');
+    $('#rCopy').innerHTML = `<div class="copy-pane">${R_COPY[v]}</div>`; $('#rCopy').scrollTop = 0;
+    $('#phones').innerHTML = R_VIDEOS[v].map(([src, cap]) =>
+      `<div class="phone"><div class="shell"><video src="${src}" controls playsinline preload="metadata"></video></div>${cap ? `<span class="cap">${cap}</span>` : ''}</div>`).join('');
+  }
+  rToggle.addEventListener('click', e => { const b = e.target.closest('button'); if (b && b.dataset.v !== rVersion) setRVersion(b.dataset.v); });
+  /* ================= Research documents ================= */
+  // Google Docs previews embed; Notion does not, so it is a plain link
+  function showDoc(tab){
+    document.querySelectorAll('#docTabs [role="tab"]').forEach(t => t.setAttribute('aria-selected', t === tab));
+    $('#docOpen').href = tab.dataset.open;
+    const dev = $('#docDevice');
+    let f = dev.querySelector(`iframe[data-doc="${tab.dataset.doc}"]`);
+    if (!f) {
+      f = document.createElement('iframe'); f.dataset.doc = tab.dataset.doc; f.src = tab.dataset.doc; f.title = tab.textContent.trim();
+      f.onload = () => dev.querySelector('.loading')?.remove();
+      dev.appendChild(f);
+    }
+    dev.querySelectorAll('iframe').forEach(x => x.style.visibility = x === f ? 'visible' : 'hidden');
+  }
+  $('#docTabs').addEventListener('click', e => { const t = e.target.closest('[role="tab"]'); if (t) showDoc(t); });
+
+  const pauseAll = () => document.querySelectorAll('video').forEach(x => x.pause());
+
+  /* ================= Website design ================= */
+  const STEPS = [
+    { pill: 'Direction 01', note: 'Scroll inside the frame to see the full page.',
+      html: `<h2><span class="num">01</span>Understanding the goal &amp; first design direction</h2>
+        <p class="lead">The goal was to revamp the existing Smart Paper website without changing its structure too much, but making it more organised, visually appealing, and colourful.</p>
+        <p>The first direction focused on clean vector illustrations, including an Indian-looking character in a T-shirt, and a clearer presentation of how the product works.</p>
+        <p>Although this direction was initially liked, feedback highlighted that the visuals felt too clean and lacked the desired character.</p>` },
+    { pill: 'Direction 02', note: 'Live Figma prototype. Click around inside it.',
+      html: `<h2><span class="num">02</span>Exploring the index tabs concept</h2>
+        <p class="lead">I explored index tabs as a visual direction, inspired by how we use them to organise physical papers.</p>
+        <p>The idea was to use them to connect the different sections of the website and give the pages a consistent visual language.</p>
+        <p>However, the concept felt more like a visual gimmick than a meaningful way to communicate the product. It wasn't solving the larger problem of how to present Smart Paper effectively.</p>` },
+    { pill: 'Direction 03', note: 'Interactive. Open the folder and move through it.',
+      html: `<h2><span class="num">03</span>Exploring the folder concept</h2>
+        <p class="lead">The next direction explored a folder-based layout, using the idea of opening a folder to move through the website.</p>
+        <p>Alongside this, I experimented with presenting numbers in a more relatable way. For example, instead of simply stating a height in kilometres, I compared it with the height of Mount Everest to make the scale easier to understand.</p>
+        <p>Although the folder concept showed potential, something still felt missing. We were presenting product features without communicating the larger idea behind them.</p>` },
+    { pill: 'Turning point', pillClass: 'turn', note: 'What changed everything.',
+      html: `<p class="eyebrow">the turning point</p>
+        <h2>Learning the founder's vision</h2>
+        <p>During this stage, I learned something important about the founder's vision. The website wasn't meant to be a source of revenue or simply a platform to promote Smart Paper.</p>
+        <p>He wanted to create a statement on the internet about his product, something he genuinely believed in and was proud to share with the world.</p>
+        <div class="takeaway">This changed how I looked at the problem, and led the shift towards storytelling.</div>` },
+    { pill: 'Direction 04', note: 'Interactive story. Scroll inside the frame to play it.',
+      html: `<h2><span class="num">04</span>Building the story through animation</h2>
+        <p class="lead">The next step was to shift the focus from promoting the product to communicating its purpose.</p>
+        <p>The idea was to show how people write on paper and how a child learns from it, bringing the product's value to life through a story.</p>
+        <p>I first structured the storyline in a document and then used Claude to create an animated version to test the flow and get approval for the concept.</p>
+        <p>This was a shift from exploring visual layouts to thinking about what the website should actually communicate.</p>` },
+    { pill: 'Direction 05', note: 'Interactive story. Scroll inside the frame to play it.',
+      html: `<h2><span class="num">05</span>Bringing the story to life through illustrations</h2>
+        <p class="lead">Once the storyline was approved, I created colourful, hand-drawn illustrations to give it a more personal and expressive feel.</p>
+        <p>However, the animated experience was eventually found to be too long. Users needed to scroll through too much content before understanding the main message.</p>
+        <p>Although I was initially attached to the direction, this feedback helped me recognise that a good story also needs to respect the user's time.</p>` },
+    { pill: 'In progress', pillClass: 'wip', note: 'Currently being designed.',
+      html: `<h2><span class="num">06</span>Moving towards static illustrations</h2>
+        <p class="lead">The current direction explores static, abstract illustrations that retain the colourful, illustrative style while communicating the story more quickly.</p>
+        <p>The challenge now is to make every illustration meaningful, ensuring that it communicates an idea rather than simply adding visual interest.</p>
+        <p>This direction also aligns better with the larger goal: creating a website that expresses the founder's perspective and what he believes makes Smart Paper worth talking about, rather than simply promoting the product.</p>` },
+  ];
+  const slides = [...document.querySelectorAll('#webDevice .slide')];
+  const dots = $('#dots');
+  STEPS.forEach((s, i) => {
+    const b = document.createElement('button');
+    b.setAttribute('aria-label', `Go to ${s.pill}`); b.title = s.pill;
+    b.addEventListener('click', () => goStep(i));
+    dots.appendChild(b);
+  });
+  let step = 0;
+  function goStep(i){
+    step = Math.max(0, Math.min(STEPS.length - 1, i));
+    const s = STEPS[step], sl = slides[step];
+    slides.forEach(x => x.classList.toggle('on', x === sl));
+    // iframes load the first time their step is shown, then stay alive
+    if (sl.dataset.kind === 'frame' && !sl.querySelector('iframe')) {
+      const f = document.createElement('iframe');
+      f.src = sl.dataset.src; f.title = s.pill; f.allow = 'fullscreen; clipboard-write'; f.allowFullscreen = true;
+      sl.appendChild(f);
+    }
+    $('#expandBtn').hidden = !sl.dataset.kind;
+    const pill = $('#webPill'); pill.textContent = s.pill; pill.className = 'pill ' + (s.pillClass || '');
+    $('#webNote').textContent = s.note;
+    $('#webCopy').innerHTML = `<div class="copy-pane">${s.html}</div>`; $('#webCopy').scrollTop = 0;
+    [...dots.children].forEach((d, k) => d.setAttribute('aria-current', k === step));
+    $('#prevStep').disabled = step === 0;
+    $('#nextStep').disabled = step === STEPS.length - 1;
+  }
+  $('#prevStep').addEventListener('click', () => goStep(step - 1));
+  $('#nextStep').addEventListener('click', () => goStep(step + 1));
+  $('#expandBtn').addEventListener('click', () => { const d = $('#webDevice'); (d.requestFullscreen || d.webkitRequestFullscreen).call(d); });
+  $('#imgScroller').addEventListener('scroll', e => $('#scrollHint').classList.toggle('gone', e.target.scrollTop > 40), { passive: true });
+
+  /* ================= open / close / switch ================= */
+  let busy = false, current = null;
+  const hits = [...document.querySelectorAll('.menu-hit')];
+  function prepare(study){
+    current = study; body.dataset.study = study;
+    hits.forEach(h => h.classList.toggle('active', h.dataset.study === study));
+    if (study === 'revamp') setVersion('old');
+    if (study === 'responsive') setRVersion('old');
+    if (study === 'onboarding') loadFrames($('.view.onboarding'));
+    if (study === 'research') showDoc($('#docTabs [aria-selected="true"]'));
+    body.classList.toggle('solo', study === 'learnings' || study === 'about');
+    document.querySelectorAll('.letter-scroll, .page-scroll').forEach(x => x.scrollTop = 0);
+    if (study === 'website') goStep(0);
+    document.querySelectorAll('.scroll-col').forEach(x => x.scrollTop = 0);
+  }
+  function open(study){
+    if (busy) return;
+    if (body.classList.contains('open')) {                 // already presenting: swap the content in place
+      if (study === current) return close();
+      busy = true; pauseAll(); body.classList.remove('shown');
+      setTimeout(() => { prepare(study); body.classList.add('shown'); busy = false; }, 250);
+      return;
+    }
+    busy = true;
+    prepare(study);
+    body.classList.add('thinking');                         // girl thinks…
+    setTimeout(() => { body.classList.add('thought-out'); body.classList.add('open'); }, 750);   // …and the blinds roll down
+    setTimeout(() => { body.classList.add('shown'); busy = false; }, 1400);
+  }
+  function close(){
+    if (busy || !body.classList.contains('open')) return; busy = true;
+    pauseAll();
+    body.classList.remove('shown');
+    setTimeout(() => body.classList.remove('open'), 180);
+    setTimeout(() => { body.classList.remove('thinking', 'thought-out'); hits.forEach(h => h.classList.remove('active')); busy = false; }, 900);
+  }
+  hits.forEach(h => h.addEventListener('click', () => open(h.dataset.study)));
+  $('#closeBtn').addEventListener('click', close);
+
+  addEventListener('keydown', e => {
+    if (!body.classList.contains('shown') || document.fullscreenElement) return;
+    if (e.key === 'Escape') close();
+    if (current === 'website' && !e.target.closest?.('input,textarea,video')) {
+      if (e.key === 'ArrowRight') { e.preventDefault(); goStep(step + 1); }
+      if (e.key === 'ArrowLeft') { e.preventDefault(); goStep(step - 1); }
+    }
+  });
+  // deep links, e.g. index.html#process
+  const HASHES = { '#about': 'about', '#research': 'research', '#process': 'process', '#onboarding': 'onboarding', '#responsive': 'responsive', '#ui-revamp': 'revamp', '#website': 'website', '#learnings': 'learnings' };
+  if (HASHES[location.hash]) open(HASHES[location.hash]);
+})();
+</script>
+</body>
+</html>

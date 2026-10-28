@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Hand to Mind | The Smart Paper story</title>
+<meta name="description" content="Why handwriting and paper still shape how we learn, and how Smart Paper connects every page to the data behind it. A scroll story.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Caveat:wght@500..700&family=DM+Mono:wght@400;500&family=Reenie+Beanie&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#FFFFFF;--ink:#141414;--mute:#6A6A6A;--edge:rgba(20,20,20,.12);--pencil:#F4C430;
+  --sans:"Bricolage Grotesque",system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --hand:"Caveat","Segoe Print","Bradley Hand","Comic Sans MS",cursive;
+  --scrawl:"Reenie Beanie","Caveat","Segoe Print",cursive;
+  --mono:"DM Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#0F0F0F;--ink:#F3F3F3;--mute:#A2A2A2;--edge:rgba(255,255,255,.18);color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0F0F0F;--ink:#F3F3F3;--mute:#A2A2A2;--edge:rgba(255,255,255,.18);color-scheme:dark}
+.flip{--bg:#131313;--ink:#F3F3F3;--mute:#A2A2A2;--edge:rgba(255,255,255,.2)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .flip{--bg:#F3F3F3;--ink:#131313;--mute:#5E5E5E;--edge:rgba(0,0,0,.18)}}
+:root[data-theme="dark"] .flip{--bg:#F3F3F3;--ink:#131313;--mute:#5E5E5E;--edge:rgba(0,0,0,.18)}
+
+*,*::before,*::after{box-sizing:inherit}
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{scroll-padding-top:env(safe-area-inset-top,0px);-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);overflow-x:hidden}
+a{color:inherit}button{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--pencil);outline-offset:3px;border-radius:6px}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+#film{position:fixed;inset:0;overflow:hidden;background:var(--bg)}
+#spacer{width:1px;pointer-events:none}
+.sc{position:absolute;inset:0;background:var(--bg);color:var(--ink);visibility:hidden;display:grid;will-change:transform;
+  grid-template-columns:minmax(0,1.32fr) minmax(0,.88fr);grid-template-rows:auto minmax(0,1fr);column-gap:4.5vw;row-gap:1.2vh;
+  padding:calc(env(safe-area-inset-top,0px) + 80px) 5vw calc(env(safe-area-inset-bottom,0px) + 4.5vh)}
+.sc.live{visibility:visible}
+.head{grid-column:1/-1;grid-row:1;will-change:transform}
+.head h2{margin:0;font-weight:800;letter-spacing:-.045em;line-height:.92;font-size:min(5.4vw,8.8vh);text-wrap:balance;max-width:19ch}
+.head .sub{margin:.55em 0 0;font:500 clamp(16px,1.35vw,22px)/1.4 var(--sans);color:var(--mute);max-width:46ch}
+.art{grid-column:1;grid-row:2;min-height:0;min-width:0;position:relative;will-change:transform}
+.art svg,.half svg{width:100%;height:100%;display:block;overflow:visible}
+.side{grid-column:2;grid-row:2;align-self:center;min-height:0;position:relative;will-change:transform}
+
+svg .l{fill:none;stroke:currentColor;stroke-width:3.2;stroke-linecap:round;stroke-linejoin:round}
+svg .w{fill:var(--bg);stroke:currentColor;stroke-width:3.2;stroke-linecap:round;stroke-linejoin:round}
+svg .f{fill:currentColor;stroke:none}
+svg .thin{stroke-width:2}
+svg .bold{stroke-width:5}
+svg .y{fill:var(--pencil);stroke:currentColor;stroke-width:3.2;stroke-linejoin:round}
+svg .yb{fill:var(--pencil);stroke:none}
+svg text{fill:currentColor;font-family:var(--sans);font-weight:700}
+svg .hw{font-family:var(--hand);font-weight:700}
+svg .scrawl{font-family:var(--scrawl);font-weight:400}
+.ne{fill:none;stroke:currentColor;stroke-width:1.6;opacity:.22;transition:opacity .3s,stroke-width .3s}
+.ne.lit{stroke-width:3.4;opacity:1}
+.nn{fill:var(--bg);stroke:currentColor;stroke-width:1.8;opacity:.3;transition:opacity .3s,fill .3s}
+.nn.lit{fill:currentColor;opacity:1}
+.chr .hit{cursor:pointer}
+
+/* facts, plain text */
+.fx{margin:0 0 2.4vh;opacity:0;transform:translateY(12px);transition:opacity .45s ease,transform .45s ease}
+.fx.on{opacity:1;transform:none}
+.fx.done{opacity:.35;transform:none;margin-bottom:.9vh}
+.fx.done p,.fx.done .num{display:none}
+.fx .lab{display:block;font:700 clamp(24px,2.1vw,34px)/1 var(--hand);margin-bottom:.12em}
+.fx p{margin:0;font:500 clamp(16px,1.32vw,21px)/1.42 var(--sans);max-width:34ch}
+.fx .num{display:block;font-weight:800;font-size:clamp(34px,4.2vw,70px);letter-spacing:-.05em;line-height:1;margin:.05em 0 .1em}
+.fx small{display:block;color:var(--mute);font-size:.84em;margin-top:.35em}
+
+.steps{list-style:none;margin:0;padding:0}
+.steps li{position:relative;padding-left:3.1rem;margin:0 0 1.6vh;opacity:.3;transition:opacity .35s}
+.steps li::before{content:attr(data-n);position:absolute;left:0;top:-.1em;width:2.2rem;height:2.2rem;border-radius:50%;display:grid;place-items:center;
+  font:800 1rem var(--sans);border:2px solid var(--ink);background:var(--bg);transition:background .3s,color .3s}
+.steps li.on{opacity:1}.steps li.done{opacity:.55}
+.steps li.on::before{background:var(--ink);color:var(--bg)}
+.steps b{display:block;font:800 clamp(17px,1.5vw,24px)/1.15 var(--sans);letter-spacing:-.015em}
+.steps span{display:block;font:500 clamp(14px,1.08vw,17px)/1.4 var(--sans);color:var(--mute);margin-top:.15em;max-width:36ch}
+.steps li:not(.on) span{display:none}
+
+.sc.op{grid-template-columns:1fr;grid-template-rows:minmax(0,1fr) auto}
+.sc.op .art{grid-column:1;grid-row:1}
+.foot{grid-row:2;text-align:center;will-change:transform}
+.foot .sub{margin:0 auto;max-width:34ch;font:600 clamp(18px,1.9vw,30px)/1.3 var(--sans);opacity:0;transform:translateY(10px);transition:opacity .6s,transform .6s}
+.foot .sub.on{opacity:1;transform:none}
+.hint{margin-top:2vh;font:500 11px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--mute);opacity:0;transition:opacity .5s;display:grid;justify-items:center;gap:8px}
+.hint i{display:block;width:2px;height:30px;background:currentColor;transform-origin:top;animation:drip 1.8s ease-in-out infinite}
+@keyframes drip{0%{transform:scaleY(0)}60%{transform:scaleY(1)}100%{transform:scaleY(1);opacity:0}}
+.hint.on{opacity:1}
+
+.sc.brain{grid-template-columns:1fr 1fr;grid-template-rows:auto minmax(0,1fr) auto}
+.half{grid-row:2;display:grid;grid-template-rows:minmax(0,1fr) auto;min-height:0;min-width:0;will-change:transform}
+.half.l{grid-column:1}.half.r{grid-column:2}
+.cap{text-align:center;opacity:0;transform:translateY(10px);transition:opacity .45s,transform .45s;padding:0 2vw}
+.cap.on{opacity:1;transform:none}
+.cap .lab{display:block;font:700 clamp(24px,2.1vw,34px)/1 var(--hand)}
+.cap p{margin:.25em auto 0;font:500 clamp(15px,1.22vw,20px)/1.4 var(--sans);max-width:34ch}
+.note{grid-column:1/-1;grid-row:3;text-align:center;font:500 clamp(13px,1vw,16px)/1.4 var(--sans);color:var(--mute);opacity:0;transition:opacity .45s;margin-top:1vh}
+.note.on{opacity:1}
+
+.pill{display:inline-block;padding:.85em 1.5em;border-radius:999px;font:500 12px var(--mono);letter-spacing:.06em;text-transform:uppercase;text-decoration:none;
+  border:2px solid var(--ink);background:var(--ink);color:var(--bg);margin:0 6px 8px 0}
+.pill.ghost{background:transparent;color:var(--ink)}
+.links{margin-top:1.6vh;font:500 12px var(--mono);letter-spacing:.06em;text-transform:uppercase}
+.links a{margin-right:1.4em}
+details.src{margin-top:2.2vh;font:500 13px/1.45 var(--sans);color:var(--mute);max-width:46ch}
+details.src summary{cursor:pointer;font:500 11px var(--mono);letter-spacing:.06em;text-transform:uppercase}
+
+/* travelling layer */
+#trav{position:fixed;inset:0;width:100%;height:100%;z-index:18;pointer-events:none;color:var(--ink);overflow:visible}
+
+/* chrome */
+.brand{position:fixed;z-index:30;top:calc(env(safe-area-inset-top,0px) + 22px);left:clamp(14px,2.4vw,32px);font:700 15px var(--sans);letter-spacing:-.02em;text-decoration:none;color:var(--ink);transition:color .4s}
+.nav{position:fixed;z-index:30;top:calc(env(safe-area-inset-top,0px) + 14px);left:50%;transform:translateX(-50%);display:flex;gap:2px;padding:5px;border-radius:8px;
+  background:rgba(128,128,128,.14);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);font:500 10.5px var(--mono);letter-spacing:.05em;text-transform:uppercase;color:var(--ink);transition:color .4s}
+.nav button{border:0;background:transparent;padding:6px 10px;border-radius:5px;cursor:pointer;opacity:.55;white-space:nowrap;color:inherit}
+.nav button[aria-current="true"]{background:var(--ink);color:var(--bg);opacity:1}
+.nav .bar{position:absolute;left:5px;right:5px;bottom:1px;height:2px;background:rgba(128,128,128,.25)}
+.nav .bar i{display:block;height:100%;width:0;background:currentColor}
+.menubtn{position:fixed;z-index:30;top:calc(env(safe-area-inset-top,0px) + 20px);right:clamp(14px,2.4vw,32px);font:500 11px var(--mono);letter-spacing:.06em;text-transform:uppercase;
+  background:none;border:0;cursor:pointer;color:var(--ink);transition:color .4s}
+.sound{position:fixed;z-index:30;right:clamp(14px,2.4vw,32px);bottom:calc(env(safe-area-inset-bottom,0px) + 16px);width:40px;height:40px;border-radius:50%;border:0;cursor:pointer;
+  background:rgba(128,128,128,.18);display:grid;place-items:center;color:var(--ink);transition:color .4s}
+.sound svg{width:20px;height:20px}.sound .x{opacity:1}.sound[aria-pressed="true"] .x{opacity:0}
+body.onflip .nav,body.onflip .menubtn,body.onflip .brand,body.onflip .sound{color:#F3F3F3}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) body.onflip .nav,:root:not([data-theme="light"]) body.onflip .menubtn,:root:not([data-theme="light"]) body.onflip .brand,:root:not([data-theme="light"]) body.onflip .sound{color:#131313}}
+:root[data-theme="dark"] body.onflip .nav,:root[data-theme="dark"] body.onflip .menubtn,:root[data-theme="dark"] body.onflip .brand,:root[data-theme="dark"] body.onflip .sound{color:#131313}
+#menu{position:fixed;inset:0;z-index:40;background:var(--bg);color:var(--ink);display:none;padding:12vh 6vw 6vh;overflow:auto}
+#menu.open{display:grid;grid-template-columns:1.2fr 1fr;gap:6vw;align-content:start}
+#menu h3{font:500 11px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--mute);margin:0 0 2vh}
+#menu .main a{display:block;font:800 min(8vw,11vh)/1.02 var(--sans);letter-spacing:-.05em;text-decoration:none;padding:.03em 0}
+#menu .main a:hover{text-decoration:underline;text-decoration-thickness:.06em}
+#menu ol{list-style:none;margin:0;padding:0}
+#menu ol button{background:none;border:0;cursor:pointer;font:700 clamp(18px,1.8vw,26px)/1.7 var(--sans);padding:0;text-align:left}
+#menu ol button span{display:inline-block;width:2.4em;font:500 11px var(--mono);color:var(--mute)}
+#menu .close{position:absolute;top:calc(env(safe-area-inset-top,0px) + 20px);right:clamp(14px,2.4vw,32px);font:500 11px var(--mono);letter-spacing:.06em;text-transform:uppercase;background:none;border:0;cursor:pointer}
+
+@media (max-aspect-ratio: 1/1){
+  .sc{grid-template-columns:1fr;grid-template-rows:auto minmax(0,1fr) auto;padding-top:calc(env(safe-area-inset-top,0px) + 66px);padding-bottom:calc(env(safe-area-inset-bottom,0px) + 70px)}
+  .art{grid-column:1;grid-row:2}
+  .side{grid-column:1;grid-row:3;align-self:start;min-height:24vh}
+  .fx{margin:0;position:absolute;left:0;right:0}
+  .fx.done{opacity:0;visibility:hidden}
+  .head h2{font-size:min(9.4vw,5.4vh)}
+  .head .sub{font-size:15px}
+  .steps li{display:none;margin:0}.steps li.on{display:block}
+  .steps li.on span{display:block}
+  .sc.brain{grid-template-columns:1fr 1fr;grid-template-rows:auto minmax(0,1fr) auto}
+  .cap p{font-size:13px}
+  .nav button:not([aria-current="true"]){display:none}
+  #menu.open{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion: reduce){.fx,.cap,.steps li,.foot .sub{transition:none}.hint i{animation:none}}
+</style>
+</head>
+<body>
+
+<a class="brand" href="https://www.getsmartpaper.com/">Smart Paper</a>
+<nav class="nav" id="nav" aria-label="Story chapters"></nav>
+<button class="menubtn" id="menubtn" aria-haspopup="dialog">Menu</button>
+<button class="sound" id="sound" aria-pressed="false" aria-label="Sound effects">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path class="x" d="M17 9l5 6M22 9l-5 6"/></svg>
+</button>
+<div id="menu" role="dialog" aria-label="Menu">
+  <button class="close" id="menuclose">Close</button>
+  <div class="main"><h3>Smart Paper</h3>
+    <a href="https://www.getsmartpaper.com/">Features</a><a href="#pricing">Pricing</a><a href="#contact">Contact</a><a href="https://calendly.com/nirmalpatel">Try a demo</a></div>
+  <div><h3>The story</h3><ol id="menulist"></ol></div>
+</div>
+
+<main id="film" aria-label="Hand to Mind, a scroll story">
+
+<section class="sc op" id="s0">
+  <h1 class="sr-only">Hand to Mind</h1>
+  <div class="art"><svg viewBox="0 0 1000 560" preserveAspectRatio="xMidYMid meet" aria-hidden="true"></svg></div>
+  <div class="foot"><p class="sub" id="s0sub">Handwriting and paper still shape how we learn, even in a digital world.</p><div class="hint" id="s0hint"><span>Scroll</span><i></i></div></div>
+</section>
+
+<section class="sc" id="s1">
+  <div class="head"><h2>A child learns a letter by making it.</h2></div>
+  <div class="art"><svg viewBox="0 0 1000 700" preserveAspectRatio="xMidYMid meet" aria-hidden="true"></svg></div>
+  <div class="side">
+    <div class="fx" data-in="0.30" data-out="0.64"><span class="lab">the reading circuit</span><p>In brain scans of five-year-olds, the reading circuit switched on after they wrote letters by hand. It did not after typing or tracing.</p></div>
+    <div class="fx" data-in="0.64" data-out="9"><span class="lab">why it matters</span><p>Slow letter recognition early on predicts reading difficulties in later grades.</p></div>
+  </div>
+</section>
+
+<section class="sc brain flip" id="s2">
+  <div class="head"><h2>Writing wakes up the whole brain.</h2></div>
+  <div class="half l"><svg id="brainL" viewBox="0 0 640 600" preserveAspectRatio="xMidYMid meet" aria-hidden="true"></svg>
+    <div class="cap" data-in="0.22"><span class="lab">writing on paper</span><p>Movement, touch and thinking regions all join in. Links between memory-related regions are far richer.</p></div></div>
+  <div class="half r"><svg id="brainR" viewBox="0 0 640 600" preserveAspectRatio="xMidYMid meet" aria-hidden="true"></svg>
+    <div class="cap" data-in="0.55"><span class="lab">typing</span><p>One repeated movement. Far fewer circuits at work.</p></div></div>
+  <p class="note" data-in="0.78">Early evidence from small studies, and part of the difference may be the movement itself. So next: what people actually remember.</p>
+</section>
+
+<section class="sc" id="s3">
+  <div class="head"><h2>What the hand writes, the mind keeps.</h2></div>
+  <div class="art"><svg viewBox="0 0 1000 700" preserveAspectRatio="xMidYMid meet" aria-hidden="true"></svg></div>
+  <div class="side">
+    <div class="fx" data-in="0.16" data-out="0.44"><span class="lab">memory</span><p>Words written by hand were remembered better than words typed on a laptop or an iPad.</p></div>
+    <div class="fx" data-in="0.44" data-out="0.70"><span class="lab">an hour later</span><p>People who wrote on paper showed more activity in memory and language areas than people who used tablets or phones.</p></div>
+    <div class="fx" data-in="0.70" data-out="9"><span class="lab">better writing</span><p>Teaching handwriting improved the quality, length and fluency of school students' writing.<small>From a review of K-12 studies; that result rests on a few small studies.</small></p></div>
+  </div>
+</section>
+
+<section class="sc" id="s4">
+  <div class="head"><h2>A page has one job.</h2></div>
+  <div class="art"><svg viewBox="0 0 1000 700" preserveAspectRatio="xMidYMid meet" aria-hidden="true"></svg></div>
+  <div class="side">
+    <div class="fx" data-in="0.12" data-out="0.36"><span class="lab">focus</span><span class="num" data-cnt="65" data-suf="%">0%</span><p>of students are distracted by devices in at least some maths lessons. Students distracted by classmates' devices scored 15 points lower.<small>An association, not proof of cause.</small></p></div>
+    <div class="fx" data-in="0.36" data-out="0.60"><span class="lab">understanding</span><span class="num" data-cnt="54" data-suf=" studies">0</span><p>found better comprehension on paper, especially for explanatory text and when time is short.</p></div>
+    <div class="fx" data-in="0.60" data-out="0.82"><span class="lab">even exams</span><p>The same state exam scored lower online than on paper, by about 0.10 standard deviations in maths and 0.25 in English. The gap shrank as students got used to it.</p></div>
+    <div class="fx" data-in="0.82" data-out="9"><span class="lab">fair note</span><p>A keyboard can be better for a long essay. The right tool for the right moment.</p></div>
+  </div>
+</section>
+
+<section class="sc" id="s5">
+  <div class="head"><h2>Paper works. Paperwork takes time.</h2></div>
+  <div class="art"><svg viewBox="0 0 1000 700" preserveAspectRatio="xMidYMid meet" aria-hidden="true"></svg></div>
+  <div class="side">
+    <div class="fx" data-in="0.10" data-out="0.34"><span class="lab">two kinds of tests</span><p>Weekly checks teach. Big tests measure. Both have to be marked, recorded and returned.</p></div>
+    <div class="fx" data-in="0.34" data-out="0.56"><span class="lab">hours, every week</span><span class="num" data-cnt="4.5" data-dec="1" data-suf=" hrs">0</span><p>a week, roughly, that teachers in rich countries spend marking, plus about 3 more on general admin.</p></div>
+    <div class="fx" data-in="0.56" data-out="0.78"><span class="lab">the stress list</span><p>Too much marking and admin: among teachers' top stress drivers in a major survey.</p></div>
+    <div class="fx" data-in="0.78" data-out="9"><span class="lab">the cost</span><p>Quick feedback is among the highest-impact, lowest-cost things a school can do. The slower the checking, the less it shapes the next lesson.</p></div>
+  </div>
+</section>
+
+<section class="sc" id="s6">
+  <div class="head"><h2>Paper that works smarter.</h2><p class="sub">Smart Paper connects every page to the data behind it, and the teacher stays in charge.</p></div>
+  <div class="art"><svg viewBox="0 0 1000 700" preserveAspectRatio="xMidYMid meet" aria-hidden="true"></svg></div>
+  <div class="side">
+    <ol class="steps" id="steps">
+      <li data-n="1"><b>Create and print</b><span>The teacher makes a worksheet in the app and prints it.</span></li>
+      <li data-n="2"><b>The child writes</b><span>Pencil, paper, full focus. No screen.</span></li>
+      <li data-n="3"><b>Scan with a phone</b><span>One photo of the page.</span></li>
+      <li data-n="4"><b>AI does the first pass</b><span>It reads the handwriting, suggests scores from the rubric, spots common mistakes and keeps a searchable record.</span></li>
+      <li data-n="5"><b>The teacher reviews</b><span>The teacher checks the suggestions, adjusts if needed and approves. The teacher decides the final grade.</span></li>
+      <li data-n="6"><b>Back to the child, and home</b><span>The marked sheet goes back to the child, the next worksheet targets the gap, and a report card goes home.</span></li>
+    </ol>
+  </div>
+</section>
+
+<section class="sc" id="s7">
+  <div class="head"><h2>Weekly checks. Big exams. Every subject.</h2></div>
+  <div class="art"><svg viewBox="0 0 1000 700" preserveAspectRatio="xMidYMid meet" aria-hidden="true"></svg></div>
+  <div class="side">
+    <div class="fx" data-in="0.08" data-out="0.32"><span class="lab">formative</span><p>Weekly and bi-weekly worksheets, graded fast with instant feedback, so the next lesson can respond.</p></div>
+    <div class="fx" data-in="0.32" data-out="0.56"><span class="lab">summative</span><p>The two or three big tests a year, scored and analysed with the same simple flow.</p></div>
+    <div class="fx" data-in="0.56" data-out="0.80"><span class="lab">every subject</span><p>Maths with step-by-step working, English essays, science and social studies diagrams. Hindi and English handwriting.</p></div>
+    <div class="fx" data-in="0.80" data-out="9"><span class="lab">every school</span><p>Only paper and a phone are needed, so it works wherever there is a classroom.</p></div>
+  </div>
+</section>
+
+<section class="sc flip" id="s8">
+  <div class="head"><h2>One classroom. Then a whole state.</h2><p class="sub">Same paper. Same phone. Same steps.</p></div>
+  <div class="art"><svg viewBox="0 0 1000 640" preserveAspectRatio="xMidYMid meet" aria-hidden="true"></svg></div>
+  <div class="side">
+    <div class="fx" data-in="0.14" data-out="0.36"><span class="lab">Rajasthan</span><span class="num" data-cnt="65000" data-fmt="1">0</span><p>public schools, with 237,000 teachers.</p></div>
+    <div class="fx" data-in="0.36" data-out="0.58"><span class="lab">students</span><span class="num" data-cnt="4.7" data-dec="1" data-suf=" million">0</span><p>answering on paper. Teachers upload photos. AI does the grading.</p></div>
+    <div class="fx" data-in="0.58" data-out="0.80"><span class="lab">worksheets</span><span class="num" data-cnt="100" data-suf=" million+">0</span><p>digitised, with over a billion learning data points. Recognised by UNESCO.</p></div>
+    <div class="fx" data-in="0.80" data-out="9"><span class="lab">why scale helps</span><p>Every classroom runs the same steps, so a school sees patterns across classes and a state sees patterns across districts. Report cards already reach over 2 million households.</p><p style="margin-top:1.6vh"><a class="pill ghost" href="#rajasthan">Read the Rajasthan story</a></p></div>
+  </div>
+</section>
+
+<section class="sc" id="s9">
+  <div class="head"><h2>Paper is smart. Now it's connected.</h2></div>
+  <div class="art"><svg viewBox="0 0 1000 640" preserveAspectRatio="xMidYMid meet" aria-hidden="true"></svg></div>
+  <div class="side">
+    <div class="fx" data-in="0.10" data-out="9"><span class="lab">see it on your own worksheets</span>
+      <p style="margin:.6vh 0 2vh">Keep the pencil. Keep the paper. Get the insight.</p>
+      <a class="pill" href="https://calendly.com/nirmalpatel">Try a demo</a><a class="pill ghost" href="https://web.smartpaperapp.com/">Try Smart Paper free</a>
+      <div class="links"><a href="https://www.getsmartpaper.com/">Features</a><a href="#pricing">Pricing</a><a href="#contact">Contact</a></div>
+      <details class="src"><summary>Where the facts come from</summary>Brain-imaging and memory studies comparing handwriting with typing; a meta-analysis of handwriting instruction; OECD PISA 2022 on devices and distraction; a meta-analysis of 54 paper-versus-screen reading studies; a state-wide comparison of paper and online exams; the OECD TALIS teacher survey; Education Endowment Foundation evidence on feedback; UNESCO and programme figures for Rajasthan (as of 2024). The child, teacher and parent are illustrations. Tap them to say hi.</details>
+    </div>
+  </div>
+</section>
+
+</main>
+<svg id="trav" aria-hidden="true"></svg>
+<div id="spacer"></div>
+
+<script>
+(function(){
+'use strict';
+const reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const NS='http://www.w3.org/2000/svg';
+const $=(s,c)=>(c||document).querySelector(s),$$=(s,c)=>Array.from((c||document).querySelectorAll(s));
+const clamp=(v,a=0,b=1)=>Math.min(b,Math.max(a,v)),seg=(p,a,b)=>clamp((p-a)/(b-a)),lerp=(a,b,t)=>a+(b-a)*t;
+const ease=t=>t*t*(3-2*t),eOut=t=>1-Math.pow(1-t,3),eIn=t=>t*t*t,eIO=t=>t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
+const f1=n=>Math.round(n*10)/10,DEG=Math.PI/180;
+function rng(seed){let s=seed|0;return function(){s=s+0x6D2B79F5|0;let t=Math.imul(s^s>>>15,1|s);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+function S(tag,a,p){const e=document.createElementNS(NS,tag);if(a){for(const k in a){e.setAttribute(k,a[k]);}}if(p){p.appendChild(e);}return e;}
+function P(p,cls,d,x){return S('path',Object.assign({class:cls,d:d},x||{}),p);}
+function E(p,cls,cx,cy,rx,ry,x){return S('ellipse',Object.assign({class:cls,cx:cx,cy:cy,rx:rx,ry:ry===undefined?rx:ry},x||{}),p);}
+function T(p,txt,x,y,size,cls,extra){const t=S('text',Object.assign({x:x,y:y,'font-size':size,class:cls||''},extra||{}),p);t.textContent=txt;return t;}
+function rr(x,y,w,h,r,j,seed){const R=rng(seed||7),J=()=>(R()-.5)*2*(j||0),q=(a,b)=>f1(a)+' '+f1(b);r=Math.min(r,w/2,h/2);
+  return `M${q(x+r,y+J())}Q${q(x+w/2+J(),y+J())} ${q(x+w-r,y+J())}Q${q(x+w,y)} ${q(x+w+J(),y+r)}Q${q(x+w+J(),y+h/2+J())} ${q(x+w+J(),y+h-r)}Q${q(x+w,y+h)} ${q(x+w-r,y+h+J())}Q${q(x+w/2+J(),y+h+J())} ${q(x+r,y+h+J())}Q${q(x,y+h)} ${q(x+J(),y+h-r)}Q${q(x+J(),y+h/2+J())} ${q(x+J(),y+r)}Q${q(x,y)} ${q(x+r,y+J())}Z`;}
+function rot(x,y,cx,cy,deg){const a=deg*DEG,c=Math.cos(a),s=Math.sin(a);return[cx+(x-cx)*c-(y-cy)*s,cy+(x-cx)*s+(y-cy)*c];}
+let NOW=0;const pointer={x:0,y:0,on:false};
+window.addEventListener('pointermove',e=>{pointer.x=e.clientX;pointer.y=e.clientY;pointer.on=true;},{passive:true});
+
+/* ---------- props ---------- */
+function pencil(p){const g=S('g',{},p);P(g,'w','M0 0 L46 -11 L46 11 Z');P(g,'f','M0 0 L15 -3.7 L15 3.7 Z');
+  S('rect',{class:'y',x:46,y:-11,width:210,height:22},g);P(g,'l thin','M46 -3 L256 -3M46 5 L256 5');
+  S('rect',{class:'w',x:256,y:-11,width:26,height:22},g);P(g,'l thin','M262 -11 L262 11M270 -11 L270 11');S('rect',{class:'w',x:282,y:-11,width:22,height:22,rx:9},g);return g;}
+function pen(p){const g=S('g',{},p);P(g,'w','M0 0 L30 -9 L30 9 Z');P(g,'w',rr(28,-10,150,20,9,.4,8));P(g,'f',rr(150,-11,40,22,8,.3,9));return g;}
+function sheetShape(p,lines,seed){const g=S('g',{},p);P(g,'w',rr(-95,-118,190,236,10,1.2,seed||5));
+  if(lines!==false){for(let i=0;i<6;i++){P(g,'l thin',`M-70 ${-70+i*30} L${i%2?50:70} ${-70+i*30}`);}}return g;}
+function phoneShape(p,seed){const g=S('g',{},p);P(g,'w bold',rr(-72,-132,144,264,24,1.2,seed||3));const scr=P(g,'w thin',rr(-60,-110,120,214,14,.8,(seed||3)+1));S('circle',{class:'f',cx:0,cy:-121,r:4},g);g.scr=scr;return g;}
+function makeWriter(p,slen){const g=S('g',{},p);const sl=S('g',{transform:'translate(124 -76) rotate(30)'},g);P(sl,'w',rr(0,-38,slen||420,76,34,1,41));P(sl,'l thin',`M30 -38 L30 38`);
+  E(g,'w',98,-90,62,50,{transform:'rotate(-26 98 -90)'});const pg=S('g',{},g);const pc=pencil(pg);pc.setAttribute('transform','rotate(-58)');
+  E(g,'w',48,-64,20,14,{transform:'rotate(-32 48 -64)'});E(g,'w',66,-50,20,14,{transform:'rotate(-26 66 -50)'});E(g,'w',87,-42,19,13,{transform:'rotate(-18 87 -42)'});
+  E(g,'w',66,-124,32,15,{transform:'rotate(-58 66 -124)'});g.pencil=pg;return g;}
+const BRAIN='M-210 10 C-232 -84 -150 -160 -40 -158 C18 -188 118 -180 170 -132 C230 -120 254 -52 238 8 C250 60 212 100 162 104 C140 132 90 146 42 136 C0 152 -60 146 -100 128 C-162 128 -206 82 -210 10 Z';
+const APATH=['M-70 94 C-52 26 -26 -46 0 -106 C20 -46 44 26 68 106','M-48 26 C-18 34 14 32 42 20'];
+function aShape(p){const g=S('g',{},p);APATH.forEach(d=>P(g,'l',d,{'stroke-width':14}));return g;}
+function brainIcon(p){const g=S('g',{},p);P(g,'w bold',BRAIN);P(g,'l thin','M0 -150 C-30 -80 26 -30 -4 30 C-20 70 10 100 0 140');
+  [[-120,-40],[-40,-90],[60,-80],[140,-10],[-60,40],[60,50]].forEach((q,i,a)=>{S('circle',{class:'f',cx:q[0],cy:q[1],r:9},g);if(i){P(g,'l',`M${a[i-1][0]} ${a[i-1][1]} L${q[0]} ${q[1]}`);}});return g;}
+function cardShape(p){const g=S('g',{},p);P(g,'w bold',rr(-85,-165,170,330,22,1.2,771));T(g,'class view',-62,-122,30,'hw');
+  [.8,.55,.95,.7,.4].forEach((h,i)=>P(g,'w',rr(-62+i*26,120-h*190,18,h*190,6,.3,780+i)));g.dot=S('circle',{class:'y',cx:0,cy:0,r:16,opacity:0},g);return g;}
+function dotShape(p){const g=S('g',{},p);S('circle',{class:'y',cx:0,cy:0,r:16},g);return g;}
+
+/* ---------- characters (line art, natural arms) ---------- */
+const L1=96,L2=90;
+const MOUTH={smile:'M-8 -22 Q4 -9 18 -24',flat:'M-8 -20 L16 -22',sad:'M-8 -14 Q4 -28 18 -16',open:'M-8 -24 Q4 -2 18 -26 Z',o:'M3 -30 a7 10 0 1 0 .1 0Z'};
+const LINES={child:['Hi!','Look at my A!','I wrote that!'],teacher:['Hello!','Pencils ready?','Good morning!'],parent:['Namaste!','Hello there!','Hi!']};
+function makeArm(parent,side){
+  const sx=side==='L'?-44:44,sy=-430;const g=S('g',{transform:`translate(${sx} ${sy})`},parent),up=S('g',{},g);
+  P(up,'w',rr(-17,-17,L1+17,34,17,.5,side==='L'?31:32));const fo=S('g',{},up);P(fo,'w',rr(-15,-15,L2-6,30,15,.4,side==='L'?33:34));
+  const hd=S('g',{transform:`translate(${L2} 0)`},fo);E(hd,'w',-2,side==='L'?12:-12,7,9);S('circle',{class:'w',cx:0,cy:0,r:14},hd);
+  const a={sx:sx,sy:sy,sa:side==='L'?97:83,ea:side==='L'?-10:10,tsa:0,tea:0,driven:false,apply(){up.setAttribute('transform',`rotate(${f1(a.sa)})`);fo.setAttribute('transform',`translate(${L1} 0) rotate(${f1(a.ea)})`);}};
+  a.tsa=a.sa;a.tea=a.ea;a.apply();return a;
+}
+function ik(a,lx,ly){let dx=lx-a.sx,dy=ly-a.sy,d=Math.hypot(dx,dy);const mx=L1+L2-.5;if(d>mx){dx*=mx/d;dy*=mx/d;d=mx;}if(d<14){d=14;}
+  const base=Math.atan2(dy,dx),A=Math.acos(clamp((L1*L1+d*d-L2*L2)/(2*L1*d),-1,1)),B=Math.acos(clamp((L1*L1+L2*L2-d*d)/(2*L1*L2),-1,1)),bs=dx>=0?-1:1;
+  a.sa=(base-bs*A)/DEG;a.ea=bs*(Math.PI-B)/DEG;a.driven=true;a.apply();}
+function makeChar(type,layer){
+  const isC=type==='child',k=isC?.62:1;
+  const root=S('g',{class:'chr'},layer),body=S('g',{},root);
+  P(body,'w','M-46 -240 C-84 -170 -78 -80 -62 -14 L-12 -14 C-14 -90 -8 -170 0 -240 Z');P(body,'w','M46 -240 C84 -170 78 -80 62 -14 L12 -14 C14 -90 8 -170 0 -240 Z');
+  P(body,'w','M-70 -14 C-94 -12 -98 8 -80 9 L-12 9 C-8 2 -10 -10 -12 -14 Z');P(body,'w','M70 -14 C94 -12 98 8 80 9 L12 9 C8 2 10 -10 12 -14 Z');
+  const upper=S('g',{},body);
+  P(upper,'w','M-12 -456 L-12 -478 L12 -478 L12 -456 Z');
+  P(upper,'w','M-44 -440 C-62 -400 -58 -310 -48 -232 L48 -232 C58 -310 62 -400 44 -440 C24 -454 -24 -454 -44 -440 Z');P(upper,'l thin','M0 -448 L0 -232');
+  if(type==='teacher'){P(upper,'l thin','M-26 -446 L0 -408 L26 -446');[-396,-350,-304].forEach(y=>S('circle',{class:'f',cx:12,cy:y,r:3.6},upper));P(upper,'l thin','M-38 -300 L-14 -300 L-14 -268 L-38 -268');}
+  else if(type==='parent'){[-36,-24,-12,12,24,36].forEach(x=>P(upper,'l thin',`M${x} -420 L${x*1.1} -238`));P(upper,'w','M-32 -452 C-12 -428 12 -428 32 -452 C38 -434 22 -418 6 -416 L10 -372 L-4 -372 L-6 -416 C-22 -418 -38 -434 -32 -452 Z');}
+  else{P(upper,'l thin','M-50 -380 L50 -380M-52 -340 L52 -340');}
+  const armL=makeArm(upper,'L'),armR=makeArm(upper,'R');
+  const head=S('g',{},upper),hin=S('g',{},head);
+  P(hin,'w','M-36 -50 C-40 -92 -10 -108 20 -98 C48 -88 46 -54 38 -28 C30 -4 8 8 -12 4 C-30 -2 -34 -28 -36 -50 Z');
+  if(type==='teacher'){P(hin,'w','M-40 -70 C-74 -78 -68 -126 -32 -124 C-28 -152 24 -154 30 -126 C66 -130 74 -84 44 -76 C30 -92 -22 -92 -40 -70 Z');P(hin,'l thin','M-30 -112 q8 -10 16 0 M2 -128 q8 -10 16 0 M32 -110 q8 -8 14 2');}
+  else if(type==='parent'){S('circle',{class:'w',cx:2,cy:-118,r:22},hin);P(hin,'w','M-38 -70 C-40 -106 -6 -114 22 -106 C44 -98 48 -78 40 -64 C30 -84 -20 -90 -38 -70 Z');}
+  else{P(hin,'l','M-6 -100 C-20 -128 10 -136 6 -108M8 -104 C22 -128 40 -112 22 -98');}
+  const eyeMove=S('g',{},hin),eyeBl=S('g',{},eyeMove);S('circle',{class:'f',cx:-13,cy:-54,r:3.4},eyeBl);S('circle',{class:'f',cx:15,cy:-54,r:3.4},eyeBl);
+  if(type!=='child'){S('circle',{class:'l thin',cx:-13,cy:-54,r:11},hin);S('circle',{class:'l thin',cx:15,cy:-54,r:11},hin);P(hin,'l thin','M-2 -54 L4 -54');}
+  P(hin,'l thin','M2 -50 Q9 -42 3 -40');const mouth=P(hin,'l',MOUTH.smile);
+  const hit=S('rect',{class:'hit',x:-80,y:-620,width:160,height:630,fill:'transparent','pointer-events':'all'},root);
+  const bub=S('g',{opacity:0,style:'transition:opacity .25s'},layer),bubBg=P(bub,'w',''),bubTxt=T(bub,'',0,4,28,'',{'text-anchor':'middle'});
+  const ch={root:root,k:k,x:0,y:0,s:1,flip:1,hs:isC?1.32:1,tilt:0,ttilt:0,mood:'smile',waveUntil:-1,nextBlink:1+Math.random()*3,look:null,ex:0,ey:0,ph:Math.random()*6,bubUntil:-1,armL:armL,armR:armR,
+    place(x,y,s,flip){ch.x=x;ch.y=y;ch.s=s;ch.flip=flip||1;root.setAttribute('transform',`translate(${f1(x)} ${f1(y)}) scale(${f1(s*k*ch.flip*1000)/1000} ${f1(s*k*1000)/1000})`);},
+    setMood(m){if(m!==ch.mood){ch.mood=m;mouth.setAttribute('d',MOUTH[m]);mouth.setAttribute('class',m==='open'||m==='o'?'w':'l');}},
+    local(X,Y){const sc=ch.s*ch.k;return[(X-ch.x)/(sc*ch.flip),(Y-ch.y)/sc];},
+    reach(side,X,Y){const l=ch.local(X,Y);ik(side==='L'?armL:armR,l[0],l[1]);},
+    pose(side,sa,ea){const a=side==='L'?armL:armR;a.tsa=sa;a.tea=ea;},
+    rest(){ch.pose('L',97,-10);ch.pose('R',83,10);},
+    handPos(side){const a=side==='L'?armL:armR,s1=a.sa*DEG,s2=(a.sa+a.ea)*DEG,lx=a.sx+L1*Math.cos(s1)+L2*Math.cos(s2),ly=a.sy+L1*Math.sin(s1)+L2*Math.sin(s2),sc=ch.s*ch.k;return[ch.x+lx*sc*ch.flip,ch.y+ly*sc];},
+    headPos(){return[ch.x,ch.y-ch.s*ch.k*(480+50*ch.hs)];},
+    wave(){ch.waveUntil=NOW+1.9;},
+    say(txt,dur){bubTxt.textContent=txt;const w=Math.max(90,txt.length*15+44);bubBg.setAttribute('d',rr(-w/2,-30,w,52,24,.6,77)+'M-10 22 L4 40 L12 22');ch.bubUntil=NOW+(dur||1.8);},
+    tick(t,dt){
+      upper.setAttribute('transform',`translate(0 ${f1(Math.sin(t*2.1+ch.ph)*1.6)})`);
+      [armL,armR].forEach(a=>{if(a.driven){a.driven=false;return;}let tsa=a.tsa,tea=a.tea;if(t<ch.waveUntil&&a===armR){tsa=-60;tea=-40+Math.sin(t*11)*24;}
+        const kf=Math.min(1,dt*9);a.sa+=(tsa-a.sa)*kf;a.ea+=(tea-a.ea)*kf;a.apply();});
+      let bl=1;if(t>ch.nextBlink){if(t<ch.nextBlink+.14){bl=.12;}else{ch.nextBlink=t+2.4+Math.random()*3.2;}}
+      let dx=0,dy=0;
+      if(ch.look){const h=ch.headPos();dx=(ch.look[0]-h[0])*ch.flip;dy=ch.look[1]-h[1];}
+      else if(pointer.on){const m=head.getScreenCTM();if(m){dx=(pointer.x-m.e)*Math.sign(m.a||1);dy=pointer.y-(m.f-50*Math.abs(m.d));}}
+      const ln=Math.hypot(dx,dy)||1,tx=ln>4?dx/ln*3.6:0,ty=ln>4?dy/ln*2.8:0,kf=Math.min(1,dt*8);ch.ex+=(tx-ch.ex)*kf;ch.ey+=(ty-ch.ey)*kf;ch.tilt+=(ch.ttilt-ch.tilt)*Math.min(1,dt*6);
+      eyeMove.setAttribute('transform',`translate(${f1(ch.ex)} ${f1(ch.ey)})`);eyeBl.setAttribute('transform',`translate(0 -54) scale(1 ${bl}) translate(0 54)`);
+      head.setAttribute('transform',`translate(0 -480) rotate(${f1(ch.tilt)}) scale(${ch.hs})`);
+      const on=t<ch.bubUntil;bub.setAttribute('opacity',on?1:0);
+      if(on){const h=ch.headPos(),sc=Math.max(.8,ch.s*ch.k*1.05);bub.setAttribute('transform',`translate(${f1(h[0]+40*ch.flip)} ${f1(h[1]-ch.s*ch.k*80-34)}) scale(${f1(sc*100)/100})`);}
+    }};
+  hit.addEventListener('pointerdown',e=>{e.preventDefault();ch.wave();const ls=LINES[type];ch.say(ls[Math.floor(Math.random()*ls.length)],1.8);boop();});
+  ch.place(0,0,1,1);ch.tick(0,0);return ch;
+}
+
+/* ---------- scene framework ---------- */
+const scenes=[];
+function addScene(id,dur,ch,build){const el=$('#'+id);const api=build(el)||{};
+  scenes.push(Object.assign({id:id,el:el,dur:dur,ch:ch,flip:el.classList.contains('flip'),facts:$$('[data-in]',el),chars:[],lp:-1,
+    textEls:$$('.head,.side,.foot,.note',el),artEls:$$('.art,.half',el)},api));}
+function anchor(svg,x,y,r,k,kind,fade){return{svg:svg,x:x,y:y,r:r||0,k:k||1,kind:kind,fade:!!fade};}
+const T0=performance.now()/1000;
+
+/* S0 opening: hand writes the title. Traveller out: the pencil */
+addScene('s0',120,0,function(el){
+  const svg=$('svg',el),g=S('g',{transform:'rotate(-2.5 500 280)'},svg);
+  P(g,'w',rr(84,54,860,460,24,2.5,22));P(g,'w',rr(70,40,860,460,24,2.5,21));
+  [170,270,370].forEach(y=>P(g,'l thin',`M110 ${y} L890 ${y}`,{opacity:.3}));P(g,'l thin','M162 60 L162 480',{opacity:.45});
+  const cp=S('clipPath',{id:'wclip'},g),cr=S('rect',{x:180,y:150,width:0,height:260},cp);
+  const txt=T(g,'Hand to Mind',200,330,138,'hw',{'clip-path':'url(#wclip)'});
+  const flo=P(g,'l','M206 362 C360 384 560 380 742 356',{'stroke-width':8,opacity:0});const flen=flo.getTotalLength();flo.style.strokeDasharray=flen;flo.style.strokeDashoffset=flen;
+  const hand=S('g',{},svg),wr=makeWriter(hand,520);const outWrap=wr.pencil;
+  let len=640;const measure=()=>{try{len=txt.getComputedTextLength()||640;}catch(e){}};measure();if(document.fonts&&document.fonts.ready){document.fonts.ready.then(measure);}
+  let st={x:0,y:0,r:0};
+  return{outWrap:outWrap,update(p,t){
+    const w=reduce?1:ease(clamp((t-T0-.4)/2.6)),u=reduce?1:ease(clamp((t-T0-3.1)/.7));
+    cr.setAttribute('width',f1(w*(len+40)));flo.style.strokeDashoffset=flen*(1-u);flo.setAttribute('opacity',u>0?1:0);
+    let tx=200+w*len,ty=268+Math.sin(w*len*.085)*36;if(w>=1){tx=lerp(200+len,742,u);ty=lerp(300,356,u);}
+    const lift=ease(seg(p,.25,.95)),bob=u>=1?Math.sin(t*1.7)*4:0;const hx=tx+lift*260,hy=ty-lift*120+bob,hr=lift*-14;
+    hand.setAttribute('transform',`rotate(-2.5 500 280) translate(${f1(hx)} ${f1(hy)}) rotate(${f1(hr)}) scale(.62)`);
+    const q=rot(hx,hy,500,280,-2.5);st={x:q[0],y:q[1],r:-2.5+hr-58};
+    $('#s0sub').classList.toggle('on',w>.9);$('#s0hint').classList.toggle('on',u>=1&&p<.15);
+  },outAnchor(){return anchor(svg,st.x,st.y,st.r,.62,'pencil');}};
+});
+
+/* S1 the letter. In: pencil into the child's hand. Out: the letter A */
+addScene('s1',200,0,function(el){
+  const svg=$('svg',el),g=S('g',{},svg);
+  P(g,'l bold','M492 470 L470 650M790 470 L812 650M640 490 L640 650');
+  P(g,'w bold',rr(470,110,340,380,14,2,5));
+  [190,420].forEach(y=>P(g,'l thin',`M500 ${y} L780 ${y}`,{opacity:.5}));P(g,'l thin','M500 305 L780 305',{'stroke-dasharray':'8 9',opacity:.5});
+  const outWrap=S('g',{},g);const a1=P(outWrap,'l','M534 452 C552 380 578 306 604 240 C624 306 648 380 672 460',{'stroke-width':14}),a2=P(outWrap,'l','M556 372 C586 380 618 378 646 366',{'stroke-width':14});
+  const lens=[a1.getTotalLength(),a2.getTotalLength()];[a1,a2].forEach((a,i)=>{a.style.strokeDasharray=lens[i];a.style.strokeDashoffset=lens[i];});
+  const layer=S('g',{},svg);
+  const teacher=makeChar('teacher',layer);teacher.place(230,650,1,1);
+  const child=makeChar('child',layer);child.place(442,650,1.34,1);
+  const inWrap=S('g',{},layer);const pc=pencil(inWrap);
+  let said=false,pst={x:534,y:452,r:-148};
+  return{chars:[teacher,child],inWrap:inWrap,outWrap:outWrap,update(p,t){
+    const t1=ease(seg(p,.1,.46)),t2=ease(seg(p,.48,.58));
+    a1.style.strokeDashoffset=lens[0]*(1-t1);a2.style.strokeDashoffset=lens[1]*(1-t2);a1.style.opacity=t1>0?1:0;a2.style.opacity=t2>0?1:0;
+    const tip=p<.48?a1.getPointAtLength(lens[0]*t1):a2.getPointAtLength(lens[1]*t2);
+    const lift=ease(seg(p,.6,.7));const tx=tip.x-lift*40,ty=tip.y+lift*30,ang=-148*DEG;
+    child.reach('R',tx+Math.cos(ang)*66,ty+Math.sin(ang)*66);const hp=child.handPos('R');
+    const px=hp[0]-Math.cos(ang)*66,py=hp[1]-Math.sin(ang)*66;pst={x:px,y:py,r:-148};
+    pc.setAttribute('transform',`translate(${f1(px)} ${f1(py)}) rotate(-148) scale(.5)`);
+    child.pose('L',100,-14);child.look=p<.66?[px,py]:null;child.ttilt=p<.66?7:-3;child.setMood(p>.62?'open':'smile');
+    teacher.rest();teacher.look=p<.66?[px,py]:null;teacher.ttilt=p>.62?5:0;
+    if(p>.66&&!said){said=true;teacher.wave();teacher.say('Nice A!',2.2);}if(p<.5){said=false;}
+  },inAnchor(){return anchor(svg,534,452,-148,.5,'pencil');},outAnchor(){return anchor(svg,604,346,0,1,'A');}};
+});
+
+/* S2 the brain. In: the A lands in the brain. Out: the whole brain */
+function buildNet(parent,cx,cy,rx,ry,seed,n){
+  const R=rng(seed),nodes=[];for(let i=0;i<n;i++){const a=R()*Math.PI*2,r=Math.sqrt(R())*.86;nodes.push([cx+Math.cos(a)*rx*r,cy+Math.sin(a)*ry*r]);}
+  const pairs={},list=[];nodes.forEach((nd,i)=>{nodes.map((m,j)=>[Math.hypot(nd[0]-m[0],nd[1]-m[1]),j]).filter(x=>x[1]!==i).sort((a,b)=>a[0]-b[0]).slice(0,3).forEach(dd=>{const kk=Math.min(i,dd[1])+'-'+Math.max(i,dd[1]);if(!pairs[kk]){pairs[kk]=1;list.push([i,dd[1]]);}});});
+  for(let i=list.length-1;i>0;i--){const j=Math.floor(R()*(i+1));const t=list[i];list[i]=list[j];list[j]=t;}
+  const eEls=list.map(pr=>S('path',{class:'ne',d:`M${f1(nodes[pr[0]][0])} ${f1(nodes[pr[0]][1])} L${f1(nodes[pr[1]][0])} ${f1(nodes[pr[1]][1])}`},parent));
+  const nEls=nodes.map(nd=>S('circle',{class:'nn',cx:f1(nd[0]),cy:f1(nd[1]),r:7},parent));const inc=nodes.map(()=>[]);list.forEach((pr,i)=>{inc[pr[0]].push(i);inc[pr[1]].push(i);});
+  return{n:-1,count:list.length,set(k){if(k===this.n){return;}this.n=k;eEls.forEach((e,i)=>e.classList.toggle('lit',i<k));nEls.forEach((c,i)=>c.classList.toggle('lit',inc[i].some(x=>x<k)));}};
+}
+function makeBrain(svg,cx,cy,sc,labels,id){
+  const g=S('g',{transform:`translate(${cx} ${cy}) scale(${sc})`},svg);
+  P(g,'w',rr(18,100,46,100,22,.6,51));E(g,'w',122,112,64,38);P(g,'w bold',BRAIN);
+  const cp=S('clipPath',{id:id},g);P(cp,'',BRAIN);const rg=S('g',{'clip-path':`url(#${id})`},g);
+  const regs=[['movement','band',[-46,-200,70,380,14]],['senses','e',[80,-92,104,92]],['thinking','e',[-135,-30,112,124]],['memory','e',[-6,78,150,62]],['vision','e',[210,-8,70,96]]].map(d=>{
+    const el=d[1]==='band'?P(rg,'f',rr(d[2][0],d[2][1],d[2][2],d[2][3],30,1.2,61),{transform:`rotate(${d[2][4]})`,opacity:0}):E(rg,'f',d[2][0],d[2][1],d[2][2],d[2][3],{opacity:0});return{name:d[0],el:el};});
+  P(g,'l thin','M0 -150 C-30 -80 26 -30 -4 30 C-20 70 10 100 0 140');
+  const net=buildNet(g,10,-14,200,120,id.length*13+5,22);
+  const lab={};if(labels){[['movement',-6,-176],['senses',112,-118],['thinking',-150,-6],['memory',-6,102]].forEach(l=>{lab[l[0]]=T(g,l[0],l[1],l[2],40,'hw',{'text-anchor':'middle',opacity:0});});}
+  return{g:g,regs:regs,net:net,lab:lab};
+}
+addScene('s2',240,1,function(el){
+  const sl=$('#brainL'),sr=$('#brainR');
+  const outWrap=S('g',{},sl);const BL=makeBrain(outWrap,320,210,1.1,true,'bcl');const BR=makeBrain(sr,320,210,1.1,false,'bcr');
+  const inWrap=S('g',{},sl);const ag=aShape(inWrap);ag.setAttribute('transform','translate(320 196) scale(.36)');
+  P(sl,'w',rr(126,450,380,110,14,1.4,82));[488,524].forEach(y=>P(sl,'l thin',`M146 ${y} L486 ${y}`,{opacity:.4}));
+  const sq=P(sl,'l','M160 520 C180 470 200 540 222 498 S262 470 276 514 S312 536 330 494 S372 480 386 516 S420 530 440 500',{'stroke-width':6});const sqL=sq.getTotalLength();sq.style.strokeDasharray=sqL;sq.style.strokeDashoffset=sqL;
+  const wh=S('g',{},sl);makeWriter(wh,300);
+  P(sr,'w bold',rr(106,444,412,140,24,1.4,92));const keys=[];
+  [[128,466,11],[142,504,10],[166,542,9]].forEach((r,ri)=>{for(let i=0;i<r[2];i++){keys.push(P(sr,'w thin',rr(r[0]+i*34,r[1],27,27,6,.4,100+ri*20+i)));}});
+  const target=keys[16];P(sr,'w thin',rr(200,542,200,27,8,.4,140));
+  const fh=S('g',{},sr);const fsl=S('g',{transform:'translate(30 -34) rotate(-40)'},fh);P(fsl,'w',rr(0,-26,190,52,24,.8,95));E(fh,'w',16,-26,28,22);E(fh,'w',0,-4,9,15);
+  return{inWrap:inWrap,outWrap:outWrap,update(p,t){
+    ag.setAttribute('opacity',1-seg(p,.03,.12));
+    const w=ease(seg(p,.08,.62));sq.style.strokeDashoffset=sqL*(1-w);sq.style.opacity=w>0?1:0;
+    const pt=sq.getPointAtLength(sqL*w);wh.setAttribute('transform',`translate(${f1(pt.x)} ${f1(pt.y)}) scale(.36)`);
+    BL.net.set(Math.floor(w*BL.net.count));
+    const order=['movement','senses','thinking','memory','vision'];
+    BL.regs.forEach(r=>{const i=order.indexOf(r.name),v=ease(seg(w,i*.14,i*.14+.3));r.el.setAttribute('opacity',f1(v*(.15+.04*Math.sin(t*3+i))*100)/100);});
+    Object.keys(BL.lab).forEach(n=>{const i=order.indexOf(n);BL.lab[n].setAttribute('opacity',ease(seg(w,i*.14+.12,i*.14+.3)));});
+    const kt=seg(p,.48,.95),press=p>.46?Math.max(0,Math.sin(t*9)):0;
+    BR.net.set(Math.min(3,Math.floor(kt*3.99)));BR.regs.forEach(r=>r.el.setAttribute('opacity',r.name==='movement'?f1(ease(seg(kt,0,.4))*.14*100)/100:0));
+    target.setAttribute('transform',`translate(0 ${f1(press*4)})`);fh.setAttribute('transform',`translate(330 ${f1(504-(1-press)*14)})`);fh.style.opacity=p>.4?1:0;
+  },inAnchor(){return anchor(sl,320,196,0,.36,'A');},outAnchor(){return anchor(sl,320,210,0,1.1,'brain');}};
+});
+
+/* S3 memory. In: the brain shrinks into the child's head. Out: the page */
+addScene('s3',180,1,function(el){
+  const svg=$('svg',el),layer=S('g',{},svg);
+  const child=makeChar('child',layer);child.place(400,650,1.45,1);
+  const outWrap=S('g',{},layer);const sh=sheetShape(outWrap,true,202);sh.setAttribute('transform','translate(600 400) rotate(6)');
+  const words=[['sun',548,330],['kite',600,368],['seven',556,410]];
+  const wEls=words.map(w=>T(outWrap,w[0],w[1],w[2],40,'hw'));
+  const cards=words.map((w,i)=>{const cg=S('g',{},layer);P(cg,'w',rr(-62,-30,124,60,14,1,220+i));T(cg,w[0],0,14,40,'hw',{'text-anchor':'middle'});return cg;});
+  const spark=S('g',{},layer);[[0,-26],[22,-14],[-22,-14]].forEach(q=>P(spark,'w',`M${q[0]} ${q[1]-10} L${q[0]+3} ${q[1]-3} L${q[0]+10} ${q[1]} L${q[0]+3} ${q[1]+3} L${q[0]} ${q[1]+10} L${q[0]-3} ${q[1]+3} L${q[0]-10} ${q[1]} L${q[0]-3} ${q[1]-3}Z`));
+  const memLab=T(layer,'memory',512,180,44,'hw',{opacity:0});
+  return{chars:[child],outWrap:outWrap,update(p,t){
+    child.reach('R',512,470);child.pose('L',100,-14);
+    const h=child.headPos();let n=0,cur=null;
+    cards.forEach((c,i)=>{const a=.12+i*.2,u=seg(p,a,a+.2),e=ease(u),sx=words[i][1]+40,sy=words[i][2]-12,cx=lerp(sx,h[0],e),cy=lerp(sy,h[1],e)-Math.sin(e*Math.PI)*170;
+      c.setAttribute('transform',`translate(${f1(cx)} ${f1(cy)}) rotate(${f1((1-e)*-8+Math.sin(t*2+i)*3)}) scale(${f1(lerp(1,.25,eIn(u))*100)/100})`);
+      c.setAttribute('opacity',u<=0||u>=1?0:1);wEls[i].setAttribute('opacity',u>0?0:1);if(u>=1){n++;}if(u>0&&u<1){cur=[cx,cy];}});
+    child.look=cur;child.ttilt=cur?-6:2;child.setMood(n>=3?'open':'smile');
+    spark.setAttribute('transform',`translate(${f1(h[0])} ${f1(h[1]-150)}) scale(${n?1+Math.sin(t*5)*.1:0})`);memLab.setAttribute('opacity',n>=1?1:0);
+  },inAnchor(){const h=child.headPos();return anchor(svg,h[0],h[1]-30,0,.16,'brain',true);},outAnchor(){return anchor(svg,600,400,6,1,'sheet');}};
+});
+
+/* S4 the screen. In: the page lands on the desk. Out: the written page */
+addScene('s4',220,2,function(el){
+  const svg=$('svg',el),layer=S('g',{},svg),front=S('g',{},svg);
+  const child=makeChar('child',layer);child.place(560,770,1.5,1);
+  P(front,'w bold',rr(60,470,880,44,16,1.5,301));P(front,'w bold',rr(90,506,820,300,14,1.5,302));
+  const tab=S('g',{transform:'translate(230 352) rotate(-6)'},front);P(tab,'w bold',rr(-130,-100,250,190,24,1.5,304));const scr=P(tab,'w thin',rr(-114,-84,218,158,14,1,305));
+  P(tab,'l thin','M-96 -50 L40 -50M-96 -26 L70 -26M-96 -2 L50 -2');P(front,'w',rr(196,440,60,34,8,.6,309));
+  const R=rng(31),icons=['heart','bell','play','chat','heart','bell','play','chat'];
+  const bubs=icons.map((ic,i)=>{const b=S('g',{},front);P(b,'w',rr(-66,-22,132,44,22,1,320+i));S('circle',{class:'f',cx:-42,cy:0,r:11},b);P(b,'l thin','M-20 -6 L46 -6M-20 7 L24 7');return{el:b,x:110+R()*280,y:170+R()*190,r:(R()-.5)*24,d:.04+i*.05};});
+  const inWrap=S('g',{},front);const sh=sheetShape(inWrap,true,341);sh.setAttribute('transform','translate(760 380) rotate(-4) scale(.62)');
+  const scrib=P(inWrap,'l thin','M716 352 q10 -8 20 0 t20 0 t20 0 t20 0M716 382 q10 -8 20 0 t20 0 t20 0M716 412 q10 -8 20 0 t20 0 t20 0 t20 0',{transform:'rotate(-4 760 380)'});
+  const scL=scrib.getTotalLength();scrib.style.strokeDasharray=scL;scrib.style.strokeDashoffset=scL;
+  const pc=pencil(front);
+  return{chars:[child],inWrap:inWrap,outWrap:inWrap,update(p,t){
+    const away=ease(seg(p,.45,.6));
+    bubs.forEach((b,i)=>{const u=eOut(seg(p,b.d,b.d+.12))*(1-ease(seg(p,.5+i*.01,.62+i*.01))),sc=u*(1+Math.sin(t*4+i)*.04);b.el.setAttribute('transform',`translate(${f1(b.x)} ${f1(b.y+Math.sin(t*2+i)*4)}) rotate(${f1(b.r+Math.sin(t*3+i)*3)}) scale(${f1(sc*100)/100})`);});
+    scr.setAttribute('opacity',away>.5?.35:1);
+    const wr=seg(p,.6,.95);scrib.style.strokeDashoffset=scL*(1-wr);
+    const writing=p>.6&&p<.96,pt=wr>0?scrib.getPointAtLength(scL*wr):{x:720,y:420};const tx=pt.x,ty=pt.y+(writing?Math.sin(t*14)*3:0),ang=-150*DEG;
+    child.reach('R',tx+Math.cos(ang)*60,ty+Math.sin(ang)*60);const hp=child.handPos('R');
+    pc.setAttribute('transform',`translate(${f1(hp[0]-Math.cos(ang)*60)} ${f1(hp[1]-Math.sin(ang)*60)}) rotate(-150) scale(.46)`);
+    child.pose('L',112,-48);child.look=away<.5?[230,330]:[tx,ty];child.ttilt=away<.5?-9:7;child.setMood(away<.5?'o':'smile');
+  },inAnchor(){return anchor(svg,760,380,-4,.62,'sheet');},outAnchor(){return anchor(svg,760,380,-4,.62,'sheet');}};
+});
+
+/* S5 paperwork. In: the page drops into the formative tray. Out: the page on the teacher's desk */
+addScene('s5',240,3,function(el){
+  const svg=$('svg',el),back=S('g',{},svg),layer=S('g',{},svg),front=S('g',{},svg);
+  const clock=S('g',{transform:'translate(170 150)'},back);S('circle',{class:'w bold',cx:0,cy:0,r:80},clock);
+  for(let i=0;i<12;i++){P(clock,'l',`M0 -66 L0 ${i%3===0?-52:-58}`,{transform:`rotate(${i*30})`});}
+  const hh=P(clock,'l bold','M0 6 L0 -38'),mh=P(clock,'l','M0 8 L0 -58');S('circle',{class:'f',cx:0,cy:0,r:6},clock);
+  const cal=S('g',{transform:'translate(840 150) rotate(4)'},back),pages=[];
+  ['exams','week 3','week 2','week 1'].forEach((l,i)=>{const pg=S('g',{},cal);P(pg,'w',rr(-82,-76,164,170,12,1.2,430+i));P(pg,'l','M-82 -36 L82 -36');for(let r=0;r<6;r++){P(pg,'l thin',`M${-60+r*24} -88 q4 -12 10 0`);}
+    T(pg,l,0,44,l==='exams'?58:54,'scrawl',{'text-anchor':'middle'});pages.unshift(pg);});
+  const teacher=makeChar('teacher',layer);teacher.place(500,770,1.08,1);
+  P(front,'w bold',rr(60,470,880,44,16,1.5,450));P(front,'w bold',rr(90,506,820,300,14,1.5,451));
+  function tray(x,label,seed){const tg=S('g',{transform:`translate(${x} 0)`},front),stack=S('g',{},tg);P(tg,'w bold',rr(-92,440,184,46,10,1,seed));T(tg,label,0,474,40,'scrawl',{'text-anchor':'middle'});return stack;}
+  const sF=tray(200,'formative',460),sS=tray(800,'summative',461),R=rng(5),shF=[],shS=[];
+  for(let i=0;i<16;i++){shF.push(P(sF,'w thin',rr(-80+R()*10,428-i*7,160,10,3,.8,470+i),{opacity:0}));}
+  for(let i=0;i<10;i++){shS.push(P(sS,'w thin',rr(-80+R()*10,428-i*9,160,12,3,.8,500+i),{opacity:0}));}
+  const outWrap=S('g',{},front);const ds=sheetShape(outWrap,true,520);ds.setAttribute('transform','translate(500 404) scale(.5)');const ticks=P(outWrap,'l','',{'stroke-width':3});
+  const pn=pen(front);
+  return{chars:[teacher],outWrap:outWrap,update(p,t){
+    const hrs=lerp(14.5,20,ease(seg(p,.04,.96)));hh.setAttribute('transform',`rotate(${f1((hrs%12)*30)})`);mh.setAttribute('transform',`rotate(${f1((hrs%1)*360)})`);
+    const pc=seg(p,.06,.9)*3.2;pages.forEach((pg,i)=>{const u=clamp(pc-i);pg.setAttribute('transform',`translate(0 ${f1(-eIn(u)*240)}) rotate(${f1(eIn(u)*-30)})`);pg.setAttribute('opacity',u>=1?0:1);});
+    const nF=Math.floor(seg(p,.05,.85)*16),nS=Math.floor(seg(p,.25,.9)*10);shF.forEach((s,i)=>s.setAttribute('opacity',i<nF?1:0));shS.forEach((s,i)=>s.setAttribute('opacity',i<nS?1:0));
+    const cyc=(t*1.1)%1,row=Math.floor(t*1.1)%4,bx=470,by=372+row*16;
+    const tx=bx+(cyc<.4?cyc/.4*10:10+((cyc-.4)/.6)*22),ty=by+(cyc<.4?cyc/.4*8:8-((cyc-.4)/.6)*18);
+    let d='';for(let r=0;r<4;r++){if(r<row||(r===row&&cyc>.5)){d+=`M${bx} ${372+r*16} l10 8 l22 -18 `;}}ticks.setAttribute('d',d);
+    const ang=-140*DEG;teacher.reach('R',tx+Math.cos(ang)*60,ty+Math.sin(ang)*60);const hp=teacher.handPos('R');
+    pn.setAttribute('transform',`translate(${f1(hp[0]-Math.cos(ang)*60)} ${f1(hp[1]-Math.sin(ang)*60)}) rotate(-140) scale(.42)`);
+    teacher.reach('L',400,490);const tired=seg(p,.35,.9);teacher.ttilt=lerp(2,12,tired);teacher.setMood(tired>.6?'sad':(tired>.25?'flat':'smile'));teacher.look=[tx,ty];
+  },inAnchor(){return anchor(svg,200,416,0,.5,'sheet',true);},outAnchor(){return anchor(svg,500,404,0,.5,'sheet');}};
+});
+
+/* S6 Smart Paper: print, write, scan, AI first pass, teacher review, back to child and home. In: page into the printer. Out: the phone */
+addScene('s6',440,4,function(el){
+  const svg=$('svg',el),g=S('g',{},svg),layer=S('g',{},svg),top=S('g',{},svg);
+  const pr=S('g',{},g);P(pr,'w bold',rr(0,520,200,120,22,1.2,601));P(pr,'w',rr(22,504,156,28,12,.8,602));P(pr,'l thin','M30 590 L130 590');S('circle',{class:'w',cx:170,cy:584,r:10},pr);
+  const inWrap=S('g',{},g);const ins=sheetShape(inWrap,false,603);ins.setAttribute('transform','translate(100 470) scale(.4)');
+  const W=S('g',{},g);P(W,'w bold',rr(-140,-190,280,380,16,1.4,610));T(W,'Fractions check',-114,-140,28,'');
+  const Q=['1/2 + 1/4 =','1/3 + 1/3 =','3/4 - 1/4 ='],A=['3/4','2/6','2/4'],OK=[1,0,1],ans=[],marks=[];
+  Q.forEach((q,i)=>{const y=-60+i*80;T(W,q,-114,y,24,'');P(W,'l thin',`M-114 ${y+18} L118 ${y+18}`,{opacity:.4});
+    const id='ac'+i,cp=S('clipPath',{id:id},W),cr=S('rect',{x:14,y:y-50,width:0,height:70},cp);T(W,A[i],18,y+4,46,'hw',{'clip-path':`url(#${id})`});ans.push(cr);
+    marks.push(OK[i]?P(W,'l',`M88 ${y-12} L98 ${y} L118 ${y-26}`,{'stroke-width':6,opacity:0}):P(W,'l',`M90 ${y-24} L114 ${y}M114 ${y-24} L90 ${y}`,{'stroke-width':6,opacity:0}));});
+  const score=T(W,'2 / 3',40,150,40,'hw',{opacity:0});
+  const beam=S('rect',{class:'yb',x:-140,y:-190,width:280,height:26,opacity:0},W);
+  const child=makeChar('child',layer);const teacher=makeChar('teacher',layer);
+  const pc=pencil(layer);
+  const outWrap=S('g',{},layer);const ph=phoneShape(outWrap,643);
+  const ray=P(top,'l thin','',{'stroke-dasharray':'6 8',opacity:0});
+  const Z=S('g',{},top);P(Z,'w bold',rr(-170,-200,340,400,26,1.4,650));T(Z,'phone view',-140,-160,30,'hw');
+  const zr=[['Q1',1],['Q2',0],['Q3',1]].map((r,i)=>{const y=-104+i*50,gg=S('g',{},Z);T(gg,r[0],-140,y,30,'');
+    gg.mk=r[1]?P(gg,'l',`M-60 ${y-12} L-50 ${y} L-30 ${y-26}`,{'stroke-width':6}):P(gg,'l',`M-58 ${y-24} L-34 ${y}M-34 ${y-24} L-58 ${y}`,{'stroke-width':6});return gg;});
+  const lbl=['reads handwriting','suggests scores','spots mistakes','saves a record'].map((s,i)=>T(Z,'+ '+s,-10,-112+i*30,23,'hw',{opacity:0}));
+  const mist=S('g',{},Z);P(mist,'w',rr(-150,24,300,54,12,.6,660));T(mist,'common mistake: denominators',0,58,22,'',{'text-anchor':'middle'});
+  const sug=S('g',{},Z);P(sug,'w',rr(-150,96,300,46,23,.6,661));const sugT=T(sug,'suggested score: 2 / 3',0,126,22,'',{'text-anchor':'middle'});
+  const appr=S('g',{},Z);P(appr,'f',rr(-150,152,300,40,20,.4,662));const apprT=T(appr,'approve',0,179,19,'',{'text-anchor':'middle',fill:'var(--bg)',style:'fill:var(--bg)'});
+  const fu=S('g',{},g);sheetShape(fu,false,670);T(fu,'practice:',-70,-40,34,'hw');T(fu,'denominators',-70,0,34,'hw');
+  const home=S('g',{},g);P(home,'w bold','M880 600 L880 540 L930 500 L980 540 L980 600 Z');P(home,'w','M915 600 L915 568 L945 568 L945 600');T(home,'home',930,630,30,'hw',{'text-anchor':'middle'});
+  const rep=S('g',{},g);P(rep,'w',rr(-44,-56,88,112,10,.6,680));T(rep,'report',0,-20,24,'hw',{'text-anchor':'middle'});P(rep,'l thin','M-28 6 L28 6M-28 22 L18 22M-28 38 L24 38');
+  const steps=$$('#steps li',el);let said=false,phst={x:0,y:0,r:0};
+  return{chars:[child,teacher],inWrap:inWrap,outWrap:outWrap,update(p,t){
+    const st=p<.14?0:p<.32?1:p<.48?2:p<.64?3:p<.8?4:5;steps.forEach((li,i)=>{li.classList.toggle('on',i===st);li.classList.toggle('done',i<st);});
+    /* 1 print */
+    const pr1=seg(p,.02,.06);inWrap.setAttribute('transform',`translate(0 ${f1(pr1*60)})`);
+    const s1=eOut(seg(p,.05,.13));let wx=lerp(100,500,s1),wy=lerp(520,300,s1),ws=lerp(.25,1,s1),wr=lerp(-6,-1,s1);
+    /* 6 back to child */
+    const back=ease(seg(p,.82,.9));wx=lerp(wx,330,back);wy=lerp(wy,330,back);ws=lerp(ws,.6,back);wr=lerp(wr,-8,back);
+    W.setAttribute('transform',`translate(${f1(wx)} ${f1(wy)}) scale(${f1(ws*1000)/1000}) rotate(${f1(wr)})`);W.setAttribute('opacity',p<.05?0:1);
+    /* 2 write */
+    const wt=seg(p,.15,.31),line=Math.min(2,Math.floor(wt*3)),lf=wt*3-line;ans.forEach((a,i)=>a.setAttribute('width',f1((i<line?1:(i===line?ease(lf):0))*70)));
+    const writing=p>.14&&p<.32,tipX=500+18+ease(lf)*62,tipY=300-60+line*80-6+(writing?Math.sin(t*16)*3:0),ang=-148*DEG;
+    child.place(270,650,1.5,1);
+    if(writing){child.reach('R',tipX+Math.cos(ang)*64,tipY+Math.sin(ang)*64);}
+    else if(back>0){child.reach('R',wx-ws*120,wy+ws*60);child.reach('L',wx-ws*60,wy+ws*150);}
+    else{child.pose('R',70,-30);}
+    if(back<=0){child.pose('L',100,-14);}
+    const hp=child.handPos('R');pc.setAttribute('transform',`translate(${f1(hp[0]-Math.cos(ang)*64)} ${f1(hp[1]-Math.sin(ang)*64)}) rotate(-148) scale(.48)`);pc.setAttribute('opacity',writing?1:0);
+    child.look=writing?[tipX,tipY]:(p<.8?[phst.x,phst.y]:null);child.setMood(back>.5?'open':'smile');child.ttilt=writing?6:0;
+    /* 3 scan: teacher walks in, holds phone over sheet */
+    const walk=ease(seg(p,.32,.37)),retreat=ease(seg(p,.48,.52)),scan=seg(p,.37,.47);
+    const tx=lerp(lerp(880,700,walk),800,retreat);teacher.place(tx,650,1,-1);
+    let px,py;
+    if(p<.32){teacher.rest();const h=teacher.handPos('R');px=h[0];py=h[1]-40;}
+    else if(p<.48){px=lerp(640,520,ease(seg(p,.33,.37)));py=lerp(260,150+scan*170,walk);teacher.reach('R',px+20,py+70);const h=teacher.handPos('R');px=h[0]-20;py=h[1]-70;}
+    else{const tap=seg(p,.66,.7);px=tx-150;py=290;teacher.reach('R',px+16,py+70);const h=teacher.handPos('R');px=h[0]-16;py=h[1]-70;
+      if(p>.64&&p<.8){teacher.reach('L',px+lerp(80,10,tap),py+lerp(60,-10,tap));}else{teacher.pose('L',97,-10);}}
+    const phs=p<.48||p>.82?.5:.62;ph.setAttribute('transform',`translate(${f1(px)} ${f1(py)}) rotate(${p>.33&&p<.48?0:-8}) scale(${phs})`);phst={x:px,y:py,r:p>.33&&p<.48?0:-8,k:phs};
+    beam.setAttribute('opacity',scan>0&&scan<1?.55:0);beam.setAttribute('y',f1(-190+scan*354));ph.scr.setAttribute('class',scan>0&&scan<1?'yb':'w thin');
+    teacher.look=p>.32&&p<.82?[px,py]:null;teacher.setMood('smile');
+    /* 4 AI first pass: phone view grows from the phone */
+    const zIn=ease(seg(p,.48,.53)),zOut=ease(seg(p,.8,.84)),zs=zIn*(1-zOut);
+    Z.setAttribute('transform',`translate(${f1(lerp(px,500,zs))} ${f1(lerp(py,300,zs))}) scale(${f1(Math.max(.001,zs)*1000)/1000})`);Z.setAttribute('opacity',zs>.02?1:0);
+    ray.setAttribute('d',`M${f1(px)} ${f1(py)} L${f1(lerp(px,400,zs))} ${f1(lerp(py,200,zs))}`);ray.setAttribute('opacity',zs>.05&&zs<.99?1:0);
+    zr.forEach((r,i)=>r.setAttribute('opacity',seg(p,.52+i*.015,.54+i*.015)));
+    lbl.forEach((l,i)=>{l.setAttribute('opacity',p>.54+i*.025&&p<.8?1:0);});
+    mist.setAttribute('opacity',seg(p,.56,.6));sug.setAttribute('opacity',seg(p,.6,.63));
+    /* 5 teacher review */
+    const approved=p>.7;appr.setAttribute('opacity',seg(p,.64,.66));apprT.textContent=approved?'approved by the teacher':'approve';
+    sugT.textContent=approved?'final grade: 2 / 3':'suggested score: 2 / 3';
+    if(p>.66&&!said){said=true;teacher.say('I decide the final grade.',3.2);}if(p<.62){said=false;}
+    W.style.opacity=p>.48&&p<.82?.25:1;
+    /* 6 marks, follow-up, report home */
+    marks.forEach((m,i)=>m.setAttribute('opacity',ease(seg(p,.83+i*.015,.85+i*.015))));score.setAttribute('opacity',seg(p,.87,.89));
+    const fuT=eOut(seg(p,.88,.94));fu.setAttribute('transform',`translate(${f1(lerp(-120,130,fuT))} 360) rotate(${f1(lerp(-20,-6,fuT))}) scale(.5)`);fu.setAttribute('opacity',fuT>0?1:0);
+    const rt=ease(seg(p,.9,.98));rep.setAttribute('transform',`translate(${f1(lerp(500,930,rt))} ${f1(lerp(300,520,rt)-Math.sin(rt*Math.PI)*140)}) rotate(${f1(rt*12)}) scale(${f1(lerp(.8,.55,rt)*100)/100})`);rep.setAttribute('opacity',rt>0&&rt<1?1:0);
+    home.setAttribute('opacity',p>.86?1:0);
+  },inAnchor(){return anchor(svg,100,470,0,.4,'sheet');},outAnchor(){return anchor(svg,phst.x,phst.y,phst.r,phst.k||.5,'phone');}};
+});
+
+/* S7 lanes. In: the phone. Out: the class view card */
+addScene('s7',200,4,function(el){
+  const svg=$('svg',el),g=S('g',{},svg);
+  P(g,'l thin',rr(30,150,560,140,70,1.2,701),{'stroke-dasharray':'10 10'});P(g,'l thin',rr(30,410,560,140,70,1.2,702),{'stroke-dasharray':'10 10'});
+  T(g,'weekly checks (formative)',50,128,40,'hw');T(g,'term and board exams (summative)',50,388,40,'hw');
+  const sheets=[],subj=['maths','english','science','hindi'];
+  function mk(lane,i){const sg=S('g',{},g);P(sg,'w',rr(-48,-58,96,116,10,1,720+i+lane*10));const s=subj[i%4];
+    if(s==='maths'){T(sg,'½+¼',-36,8,30,'');}else if(s==='english'){[-30,-12,6,24].forEach((y,k)=>P(sg,'l thin',`M-34 ${y} L${k===3?6:34} ${y}`));}
+    else if(s==='science'){P(sg,'w','M-2 30 C-40 10 -30 -36 10 -40 C24 -10 22 18 -2 30Z');P(sg,'l thin','M-6 -24 L2 28');}
+    else{T(sg,'अ आ',-36,12,30,'',{'font-family':'system-ui,sans-serif'});}sheets.push({el:sg,lane:lane,i:i});}
+  for(let i=0;i<4;i++){mk(0,i);mk(1,i);}
+  const inWrap=S('g',{},g);const ph=phoneShape(inWrap,760);ph.setAttribute('transform','translate(690 350) scale(1.3)');
+  const outWrap=S('g',{},g);const cd=cardShape(outWrap);cd.setAttribute('transform','translate(895 350)');
+  const dots=[];for(let i=0;i<6;i++){dots.push(S('circle',{class:'f',r:6,opacity:0},g));}
+  return{inWrap:inWrap,outWrap:outWrap,update(p,t){
+    let flash=0;sheets.forEach(s=>{const ph2=(t*.12+s.i*.25+s.lane*.125)%1,x=60+ph2*560,y=(s.lane?480:220)+Math.sin(t*3+s.i)*4;
+      s.el.setAttribute('transform',`translate(${f1(x)} ${f1(y)}) rotate(${f1(Math.sin(t*2+s.i)*3)})`);s.el.setAttribute('opacity',ph2<.95?1:0);if(ph2>.9){flash=1;}});
+    ph.scr.setAttribute('class',flash?'yb':'w thin');
+    dots.forEach((d,i)=>{const q=(t*.45+i/6)%1;d.setAttribute('cx',f1(lerp(780,830+(i%3)*30,q)));d.setAttribute('cy',f1(lerp(350,420-q*80,q)));d.setAttribute('opacity',q<.9?.9:0);});
+  },inAnchor(){return anchor(svg,690,350,0,1.3,'phone');},outAnchor(){return anchor(svg,895,350,0,1,'card');}};
+});
+
+/* S8 scale. In: the card becomes one dot. Out: the dot */
+addScene('s8',240,5,function(el){
+  const svg=$('svg',el),g=S('g',{},svg);
+  const cols=22,rows=12,dx=42,dy=44,x0=500-(cols-1)*dx/2,y0=320-(rows-1)*dy/2,dots=[],cx=Math.round((cols-1)/2),cy=Math.round((rows-1)/2);let maxd=0;
+  for(let j=0;j<rows;j++){for(let i=0;i<cols;i++){if(i===cx&&j===cy){continue;}const d=Math.hypot((i-cx)*.62,j-cy);maxd=Math.max(maxd,d);dots.push({c:S('circle',{cx:x0+i*dx,cy:y0+j*dy,r:7,fill:'none',stroke:'currentColor','stroke-width':1.6,opacity:.35},g),d:d});}}
+  const ox=x0+cx*dx,oy=y0+cy*dy;const wrap=S('g',{},g);const one=dotShape(wrap);one.setAttribute('transform',`translate(${ox} ${oy})`);
+  const beat=T(g,'one classroom',ox,oy-50,44,'hw',{'text-anchor':'middle'});
+  return{inWrap:wrap,outWrap:wrap,update(p,t){
+    const school=ease(seg(p,.2,.32)),state=ease(seg(p,.4,.92));const fr=school*1.6+state*(maxd);
+    dots.forEach(o=>{const lit=o.d<fr,edge=lit&&o.d>fr-1.3;o.c.setAttribute('fill',lit?'currentColor':'none');o.c.setAttribute('opacity',lit?1:.35);o.c.setAttribute('r',edge?10:7);});
+    beat.textContent=p<.2?'one classroom':p<.4?'one school':'a whole state';beat.setAttribute('opacity',p<.92?1:0);
+    one.setAttribute('transform',`translate(${ox} ${oy}) scale(${f1((1+Math.sin(t*3)*.08)*100)/100})`);
+  },inAnchor(){return anchor(svg,ox,oy,0,.06,'card');},outAnchor(){return anchor(svg,ox,oy,0,1,'dot');}};
+});
+
+/* S9 final. In: the dot rises as the sun */
+addScene('s9',160,5,function(el){
+  const svg=$('svg',el),g=S('g',{},svg);
+  const R=rng(9);for(let i=0;i<12;i++){const x=40+R()*920,y=40+R()*260,r=8+R()*12;P(g,'l thin',`M0 ${-r} Q${r*.12} ${-r*.12} ${r} 0 Q${r*.12} ${r*.12} 0 ${r} Q${-r*.12} ${r*.12} ${-r} 0 Q${-r*.12} ${-r*.12} 0 ${-r}`,{transform:`translate(${f1(x)} ${f1(y)})`});}
+  const inWrap=S('g',{},g);S('circle',{class:'y',cx:920,cy:90,r:56},inWrap);const rays=S('g',{},g);for(let i=0;i<12;i++){const a=i/12*Math.PI*2;P(rays,'l',`M${f1(920+Math.cos(a)*70)} ${f1(90+Math.sin(a)*70)} L${f1(920+Math.cos(a)*92)} ${f1(90+Math.sin(a)*92)}`);}
+  const layer=S('g',{},svg);const child=makeChar('child',layer),teacher=makeChar('teacher',layer),parent=makeChar('parent',layer);
+  child.place(200,600,1.4,1);teacher.place(440,600,.92,1);parent.place(670,600,.9,-1);
+  const pc=pencil(layer),phone=S('g',{},layer);phoneShape(phone,950);
+  const rep=S('g',{},layer);P(rep,'w',rr(-36,-46,72,92,8,.5,960));T(rep,'report',0,-16,20,'hw',{'text-anchor':'middle'});P(rep,'l thin','M-22 6 L22 6M-22 20 L14 20');
+  return{chars:[child,teacher,parent],inWrap:inWrap,update(p,t){
+    rays.setAttribute('opacity',ease(seg(p,.02,.12)));rays.setAttribute('transform',`rotate(${f1(t*6%360)} 920 90)`);
+    const cyc=t%6;if(cyc<1.9&&child.waveUntil<NOW){child.wave();}if(cyc>2&&cyc<3.9&&teacher.waveUntil<NOW){teacher.wave();}if(cyc>4&&cyc<5.9&&parent.waveUntil<NOW){parent.wave();}
+    [child,teacher,parent].forEach(c=>{c.pose('L',100,-14);if(c.waveUntil<NOW){c.pose('R',62,-44);}c.setMood('smile');});
+    const hc=child.handPos('R');pc.setAttribute('transform',`translate(${f1(hc[0]+4)} ${f1(hc[1]-30)}) rotate(-70) scale(.4)`);
+    const ht=teacher.handPos('R');phone.setAttribute('transform',`translate(${f1(ht[0]+6)} ${f1(ht[1]-34)}) rotate(8) scale(.34)`);
+    const hp=parent.handPos('R');rep.setAttribute('transform',`translate(${f1(hp[0]-6)} ${f1(hp[1]-36)}) rotate(-6)`);
+  },inAnchor(){return anchor(svg,920,90,0,3.5,'dot');}};
+});
+
+/* ---------- travelling layer ---------- */
+const trav=$('#trav'),TK={};
+['pencil','A','brain','sheet','phone','card','dot'].forEach(k=>{const g=S('g',{opacity:0},trav);
+  if(k==='pencil'){pencil(g);}else if(k==='A'){aShape(g);}else if(k==='brain'){brainIcon(g);}else if(k==='sheet'){sheetShape(g,true,9);}else if(k==='phone'){phoneShape(g,8);}else if(k==='card'){const c=cardShape(g);g.dot=c.dot;}else{dotShape(g);}TK[k]=g;});
+function toScreen(a){const r=a.svg.getBoundingClientRect(),vb=a.svg.viewBox.baseVal,s=Math.min(r.width/vb.width,r.height/vb.height),ox=r.left+(r.width-vb.width*s)/2,oy=r.top+(r.height-vb.height*s)/2;return{x:ox+a.x*s,y:oy+a.y*s,s:s*a.k,r:a.r};}
+
+/* ---------- chrome ---------- */
+const CH=['The Letter','The Brain','The Screen','The Paperwork','Smart Paper','At Scale'],TR=reduce?40:85;
+let acc=0;scenes.forEach((s,i)=>{s.start=acc;s.end=acc+s.dur;acc=s.end+(i<scenes.length-1?TR:0);});const TOTAL=acc;
+$('#spacer').style.height=(TOTAL+100)+'vh';
+const nav=$('#nav'),ml=$('#menulist'),chB=[];
+CH.forEach((c,i)=>{const first=scenes.find(s=>s.ch===i);const b=document.createElement('button');b.type='button';b.textContent=c;b.setAttribute('aria-current','false');b.addEventListener('click',()=>jump(first));nav.appendChild(b);chB.push(b);
+  const li=document.createElement('li'),bb=document.createElement('button');bb.type='button';bb.innerHTML='<span>0'+(i+1)+'</span>'+c;bb.addEventListener('click',()=>{closeMenu();jump(first);});li.appendChild(bb);ml.appendChild(li);});
+const bar=document.createElement('div');bar.className='bar';bar.innerHTML='<i></i>';nav.appendChild(bar);
+function jump(s){window.scrollTo({top:(s.start+2)/100*window.innerHeight,behavior:reduce?'auto':'smooth'});}
+function openMenu(){$('#menu').classList.add('open');$('#menuclose').focus();}
+function closeMenu(){$('#menu').classList.remove('open');$('#menubtn').focus();}
+$('#menubtn').addEventListener('click',openMenu);$('#menuclose').addEventListener('click',closeMenu);
+$$('#menu .main a').forEach(a=>a.addEventListener('click',()=>$('#menu').classList.remove('open')));
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('#menu').classList.contains('open')){closeMenu();}});
+let AC=null,soundOn=false,lastPop=0;const sb=$('#sound');
+function ensureAudio(){if(!AC){const K=window.AudioContext||window.webkitAudioContext;if(K){AC=new K();}}if(AC&&AC.state==='suspended'){AC.resume();}}
+sb.addEventListener('click',()=>{soundOn=!soundOn;sb.setAttribute('aria-pressed',soundOn?'true':'false');if(soundOn){ensureAudio();boop();}});
+function swish(){if(!soundOn||!AC){return;}const t=AC.currentTime,dur=.45,buf=AC.createBuffer(1,Math.floor(AC.sampleRate*dur),AC.sampleRate),d=buf.getChannelData(0);for(let i=0;i<d.length;i++){d[i]=Math.random()*2-1;}
+  const src=AC.createBufferSource();src.buffer=buf;const f=AC.createBiquadFilter();f.type='bandpass';f.Q.value=.9;f.frequency.setValueAtTime(400,t);f.frequency.exponentialRampToValueAtTime(2600,t+dur*.8);
+  const gn=AC.createGain();gn.gain.setValueAtTime(.0001,t);gn.gain.linearRampToValueAtTime(.12,t+.08);gn.gain.exponentialRampToValueAtTime(.0001,t+dur);src.connect(f);f.connect(gn);gn.connect(AC.destination);src.start(t);}
+function boop(){if(!soundOn||!AC){return;}const now=performance.now();if(now-lastPop<120){return;}lastPop=now;const t=AC.currentTime,o=AC.createOscillator(),gn=AC.createGain();o.type='triangle';o.frequency.setValueAtTime(440,t);o.frequency.exponentialRampToValueAtTime(760,t+.08);
+  gn.gain.setValueAtTime(.0001,t);gn.gain.linearRampToValueAtTime(.08,t+.01);gn.gain.exponentialRampToValueAtTime(.0001,t+.16);o.connect(gn);gn.connect(AC.destination);o.start(t);o.stop(t+.18);}
+
+/* ---------- loop: scenes slide like pages, layers move at different speeds, one object travels across ---------- */
+let sP=window.scrollY/window.innerHeight*100,lastT=performance.now(),activeT=-1;
+function frame(now){
+  const dt=Math.min(.05,(now-lastT)/1000);lastT=now;NOW=now/1000;
+  const vh=window.innerHeight,P0=window.scrollY/vh*100;sP=reduce?P0:sP+(P0-sP)*Math.min(1,dt*7);if(Math.abs(P0-sP)<.02){sP=P0;}
+  let cur=0,travIdx=-1,travU=0;
+  scenes.forEach((s,i)=>{
+    const uIn=i===0?1:clamp((sP-(s.start-TR))/TR),uOut=i===scenes.length-1?0:clamp((sP-s.end)/TR);
+    const vis=uIn>0&&uOut<1;s.el.classList.toggle('live',vis);s.el.style.zIndex=i+1;
+    if(sP>=s.start-TR*.5){cur=i;}
+    if(i<scenes.length-1&&uOut>0&&uOut<1){travIdx=i;travU=uOut;}
+    if(!vis){return;}
+    const eIn=eIO(uIn),eOut2=eIO(uOut);
+    if(reduce){s.el.style.transform='none';s.el.style.opacity=uIn<1?uIn:1-uOut;}
+    else{const ty=uIn<1?(1-eIn)*100:-eOut2*100;s.el.style.transform=`translate3d(0,${f1(ty)}vh,0)`;
+      const tx=uIn<1?(1-eIn)*26:-eOut2*26,ax=uIn<1?-(1-eIn)*18:eOut2*18;
+      s.textEls.forEach(e=>e.style.transform=`translate3d(0,${f1(tx)}vh,0)`);s.artEls.forEach(e=>e.style.transform=`translate3d(0,${f1(ax)}vh,0)`);}
+    const lp=clamp((sP-s.start)/s.dur);s.lp=lp;
+    if(s.update){s.update(lp,NOW,dt);}s.chars.forEach(c=>c.tick(NOW,dt));
+    s.facts.forEach(e=>{const a=+e.getAttribute('data-in'),o=+(e.getAttribute('data-out')||9),on=lp>=a&&lp<o;if(on&&!e.classList.contains('on')){boop();}
+      e.classList.toggle('on',on);e.classList.toggle('done',lp>=o);
+      const n=e.querySelector('[data-cnt]');if(n&&on){const tt=ease(seg(lp,a,a+.07)),v=(+n.getAttribute('data-cnt'))*tt,dec=+(n.getAttribute('data-dec')||0);n.textContent=(n.hasAttribute('data-fmt')?Math.round(v).toLocaleString('en-US'):v.toFixed(dec))+(n.getAttribute('data-suf')||'');}});
+  });
+  /* travelling object */
+  Object.keys(TK).forEach(k=>TK[k].setAttribute('opacity',0));
+  scenes.forEach((s,i)=>{const busyOut=i===travIdx,busyIn=i===travIdx+1&&travIdx>=0;
+    if(s.outWrap){s.outWrap.style.opacity=busyOut&&!reduce?0:'';}if(s.inWrap&&s.inWrap!==s.outWrap){s.inWrap.style.opacity=busyIn&&!reduce?0:'';}
+    if(s.inWrap&&s.inWrap===s.outWrap){s.inWrap.style.opacity=(busyIn||busyOut)&&!reduce?0:'';}
+    if(s.inWrap&&i>0&&!busyIn&&!reduce){const prev=scenes[i-1];const uIn=clamp((sP-(s.start-TR))/TR);if(uIn<=0){s.inWrap.style.opacity=0;}}
+    if(s.outWrap&&i<scenes.length-1&&!busyOut&&!reduce){const uOut=clamp((sP-s.end)/TR);if(uOut>=1){s.outWrap.style.opacity=0;}}});
+  if(travIdx>=0&&!reduce){
+    const A=scenes[travIdx].outAnchor(),B=scenes[travIdx+1].inAnchor(),a=toScreen(A),b=toScreen(B),e=eIO(travU),kind=A.kind,g=TK[kind];
+    const lift=Math.sin(Math.PI*e)*Math.min(window.innerHeight*.16,140),x=lerp(a.x,b.x,e)+Math.sin(Math.PI*e)*30,y=lerp(a.y,b.y,e)-lift;
+    const rr2=lerp(a.r,b.r,e)+Math.sin(Math.PI*e)*14,sc=lerp(a.s,b.s,e)*(1+.18*Math.sin(Math.PI*e));
+    g.setAttribute('transform',`translate(${f1(x)} ${f1(y)}) rotate(${f1(rr2)}) scale(${f1(sc*1000)/1000})`);
+    let op=1;if(B.fade){op=1-seg(travU,.82,1);}g.setAttribute('opacity',op);
+    if(kind==='card'&&g.dot){g.dot.setAttribute('opacity',seg(travU,.55,.9));}
+    const flipNow=(travU<.5?scenes[travIdx]:scenes[travIdx+1]).flip;trav.classList.toggle('flip',flipNow);
+    if(activeT!==travIdx){activeT=travIdx;swish();}
+  }else{activeT=-1;}
+  const sc=scenes[cur];chB.forEach((b,i)=>b.setAttribute('aria-current',i===sc.ch?'true':'false'));
+  document.body.classList.toggle('onflip',sc.flip&&sP>sc.start-TR*.4);
+  bar.firstChild.style.width=(clamp(sP/TOTAL)*100)+'%';
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
