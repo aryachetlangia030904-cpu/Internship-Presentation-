@@ -4,9 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Ed Optimize Cafe</title>
+<link rel="preload" as="image" href="night/layers/cafe-night.webp">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Averia+Libre:wght@400;700&family=Cedarville+Cursive&family=Andika:wght@700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Averia+Libre:wght@300;400;700&family=Cedarville+Cursive&family=Andika:wght@700&display=swap" rel="stylesheet">
 <style>
   :root{
     --beige:#F6E9D1; --beige-2:#EFDDBE; --cream:#FBF6EE; --ink:#2B211B; --ink-2:#5B4A3E;
@@ -18,6 +19,20 @@
   /* everything inside the stage uses the SVG's own 1920×1080 coordinate system */
   #stage{position:absolute;left:0;top:0;width:1920px;height:1080px}
   #cafe{position:absolute;inset:0;width:1920px;height:1080px;display:block;user-select:none;-webkit-user-drag:none}
+
+
+  /* ---------- night cafe: sky layers (sun, moon, clouds) ---------- */
+  #ncBack{position:absolute;left:-304px;top:0;width:2573px;height:1080px;pointer-events:none}
+  #ncBack img{position:absolute;display:block;pointer-events:none;user-select:none;-webkit-user-drag:none;will-change:transform,opacity}
+  #ncBack .full{left:0;top:0;width:100%;height:100%}
+  #nc-sun{left:3.4201%;top:8.9815%;width:9.1333%;height:20.5556%;  transform-origin: -165.106% 48.198%;}
+  #nc-moon{left:5.0525%;top:13.4259%;width:6.6459%;height:17.6852%; transform-origin: -368.421% 50.262%; transform: rotate(-50deg);}
+  #nc-cloudsNight{opacity: .001; transform: translateY(-11.4815%);}
+  /* the Ed Optimize menu, sign and day-only extras step aside at night */
+  .menu-hit,.menu-heading,.speech,.sign-cta,.shelf-item,#thought{transition:opacity .45s ease .25s}
+  body.nc-night .menu-hit,body.nc-night .menu-heading,body.nc-night .speech,body.nc-night .sign-cta,body.nc-night .shelf-item{opacity:0!important;pointer-events:none!important}
+  body.nc-night #thought{display:none}
+  #ncFront{position:absolute;left:0;top:0;width:1920px;height:1080px;pointer-events:none}
 
   /* ---------- menu hotspots ---------- */
   .menu-hit{position:absolute;border-radius:10px;cursor:pointer;background:transparent;border:0;padding:0}
@@ -296,7 +311,12 @@
 <body>
 <div id="viewport">
   <div id="stage">
-    <img id="sky" src="assets/sky.svg" alt="" aria-hidden="true" style="position:absolute;left:-304px;top:0;width:2573px;height:1080px;max-width:none;pointer-events:none">
+    <div id="ncBack" aria-hidden="true">
+      <img id="nc-sun" src="night/layers/sun.svg" alt="">
+      <img id="nc-moon" src="night/layers/moon.svg" alt="">
+      <img id="nc-cloudsDay" class="full" src="night/layers/clouds-day.svg" alt="">
+      <img id="nc-cloudsNight" class="full" src="night/layers/clouds-night.svg" alt="">
+    </div>
     <img id="cafe" src="assets/cafe.webp" fetchpriority="high" alt="Illustrated cafe called Ed Optimize: a menu of case studies on the left, a girl working at a laptop behind the counter, and shelves on the right.">
 
     <!-- menu hotspots (positions in SVG units) -->
@@ -325,6 +345,9 @@
     <span class="shelf-item" tabindex="0" style="left:1636px;top:764px;width:100px;height:104px;--r:-2deg"><span class="tip">extra butter please</span></span>
 
     <button class="menu-hit" data-study="website" style="left:250px;top:733px;width:184px;height:40px" aria-label="Open Website design case study"></button>
+
+    <!-- night cafe (double-tap the lamp) -->
+    <div id="ncFront"></div>
 
     <!-- thought bubble from the girl -->
     <div id="thought" aria-hidden="true">
@@ -945,6 +968,805 @@
   // deep links, e.g. index.html#process
   const HASHES = { '#about': 'about', '#research': 'research', '#process': 'process', '#onboarding': 'onboarding', '#responsive': 'responsive', '#ui-revamp': 'revamp', '#website': 'website', '#learnings': 'learnings' };
   if (HASHES[location.hash]) open(HASHES[location.hash]);
+})();
+</script>
+<template id="ncTpl"><style>
+  :host { position: absolute; inset: 0; pointer-events: none;
+    --ink: #2B211B; --ink-2: #5B4A3E; --red: #D25640; --red-deep: #B43A25;
+    --green: #235C4B; --cream: #FCECC8; --line: #E8D9BC;
+  }
+  /* stage keeps the artwork's 2573:1080 shape and scales to the window.
+     --u is one unit of the artwork, so the panels scale with the illustration. */
+  .stage { position: absolute; left: -304px; top: 0; width: 2573px; height: 1080px; --u: 1px;
+    font-family: "Averia Libre", serif; color: var(--ink); }
+  .pane.on, .hit, #closeBtn { pointer-events: auto; }
+  :host(.day-open) #lampHit { pointer-events: none; }
+  .stage > img, .copy img {
+    position: absolute; display: block; pointer-events: none;
+    user-select: none; -webkit-user-drag: none;
+    will-change: transform, opacity;   /* each layer is its own GPU bitmap */
+  }
+  .full { left: 0; top: 0; width: 100%; height: 100%; }
+  #cafeNight, #lampNight, #banner { opacity: .001; }
+
+  .hit { position: absolute; background: none; border: 0; padding: 0; cursor: pointer; }
+  .hit:focus-visible { outline: calc(4 * var(--u)) solid var(--red); outline-offset: calc(4 * var(--u)); border-radius: calc(12 * var(--u)); }
+  #lampHit { left: 45.28%; top: 24.26%; width: 5.44%; height: 16.2%; border-radius: 30%; }
+  /* night menu items (positions come from the MENU list in the script, in artwork units) */
+  #menu { display: none; }
+  :host(.night) #menu { display: block; }
+  .menu-hit { border-radius: calc(16 * var(--u)); }
+  /* hand-drawn red underline: hints on hover, stays under the item that is open */
+  .menu-line { position: absolute; height: calc(14 * var(--u)); overflow: visible; pointer-events: none; }
+  .menu-line path { fill: none; stroke: var(--red); stroke-width: 2.6; stroke-linecap: round;
+    stroke-dasharray: 100 120; stroke-dashoffset: 101; transition: stroke-dashoffset .35s ease; }
+  .menu-hit:hover + .menu-line path, .menu-hit:focus-visible + .menu-line path { stroke-dashoffset: 0; }
+  .menu-hit.active + .menu-line path { stroke-dashoffset: 0; transition-duration: .45s; }
+  :host(.panel-open) #lampHit { pointer-events: none; }
+
+  /* one wrapper per case study; only the open one is shown */
+  .study { position: absolute; inset: 0; display: none; }
+  .study.on { display: block; }
+
+  /* ---------- panes: the kitchen window and the shelves ----------
+     Each pane holds a copy of the cafe cut to its own rectangle (so it can slide away)
+     and the panel that drops in behind it. Hidden until the Logo item is opened. */
+  .pane { position: absolute; overflow: hidden; visibility: hidden; }
+  .pane.on { visibility: visible; }
+  /* measured from the artwork: inside the black outlines, x 763-1653 / 1664-2081, y 277-979 */
+  #win   { left: 29.654%; top: 25.648%; width: 34.590%; height: 65%; background: #fff; }
+  #shelf { left: 64.672%; top: 25.648%; width: 16.207%; height: 65%; background: var(--cream); }
+  .copy { position: absolute; inset: 0; overflow: hidden; will-change: transform; }
+  .panel { position: absolute; inset: 0; transform: translateY(-101%); will-change: transform; box-sizing: border-box; }
+
+  /* ---------- centre: white canvas ---------- */
+  #win .panel { padding: calc(40 * var(--u)) calc(44 * var(--u)) calc(30 * var(--u)); display: flex; flex-direction: column; }
+  .head { display: flex; align-items: baseline; gap: calc(14 * var(--u)); }
+  .head h2 { margin: 0; font-weight: 700; font-size: calc(34 * var(--u)); letter-spacing: .01em; }
+  .head .script { font-family: "Cedarville Cursive", cursive; color: var(--red); font-size: calc(36 * var(--u)); }
+  .head .phase { margin-left: auto; font-size: calc(16 * var(--u)); color: var(--ink-2); letter-spacing: .04em; }
+  .rule { height: 0; border-top: calc(2 * var(--u)) dashed var(--line); margin: calc(18 * var(--u)) 0 calc(22 * var(--u)); }
+  .views { position: relative; flex: 1; }
+  .view {
+    position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; gap: calc(26 * var(--u));
+    opacity: 0; visibility: hidden; transform: translateY(calc(14 * var(--u)));
+    transition: opacity .35s ease, transform .35s ease, visibility 0s .35s;
+  }
+  .view.on { opacity: 1; visibility: visible; transform: none; transition: opacity .4s ease .05s, transform .4s ease .05s; }
+  .row { display: flex; align-items: flex-end; justify-content: center; gap: calc(26 * var(--u)); }
+  .row.mid { align-items: center; }
+  figure { margin: 0; display: flex; flex-direction: column; align-items: center; gap: calc(10 * var(--u)); }
+  figure img { display: block; object-fit: contain; }
+  .photo img { border-radius: calc(10 * var(--u)); box-shadow: 0 calc(3 * var(--u)) calc(10 * var(--u)) rgba(43,33,27,.12); object-fit: cover; }
+  figcaption, .cap { font-size: calc(15 * var(--u)); color: var(--ink-2); text-align: center; line-height: 1.35; }
+  .note { font-family: "Cedarville Cursive", cursive; color: var(--red); font-size: calc(21 * var(--u)); }
+  .h-icons img { height: calc(96 * var(--u)); }
+  .h-sk img    { height: calc(170 * var(--u)); }
+  .h-mock img  { height: calc(190 * var(--u)); width: calc(160 * var(--u)); }
+  .h-ref img   { height: calc(190 * var(--u)); }
+  .h-bag img   { height: calc(430 * var(--u)); width: calc(322 * var(--u)); }
+  .h-grid { display: grid; grid-template-columns: repeat(2, calc(140 * var(--u))); gap: calc(18 * var(--u)); justify-items: center; align-items: center; }
+  .h-grid img { width: calc(130 * var(--u)); height: calc(130 * var(--u)); }
+  .group { display: flex; flex-direction: column; align-items: center; gap: calc(14 * var(--u)); padding: calc(18 * var(--u)) calc(24 * var(--u)); border: calc(2 * var(--u)) dashed var(--line); border-radius: calc(18 * var(--u)); }
+  .flow { display: flex; align-items: flex-end; justify-content: center; gap: calc(14 * var(--u)); }
+  .flow figure img { height: calc(160 * var(--u)); }
+  .flow .photo img { width: calc(124 * var(--u)); }
+  .flow .arrow { align-self: flex-end; padding-bottom: calc(100 * var(--u)); }
+  .arrow { font-size: calc(28 * var(--u)); color: var(--red); line-height: 1; }
+  .research img { width: calc(800 * var(--u)); height: auto; }
+  .chips { display: flex; gap: calc(12 * var(--u)); justify-content: center; }
+  .chip { font-size: calc(15 * var(--u)); padding: calc(6 * var(--u)) calc(16 * var(--u)); border-radius: 999px; background: #FBF3E3; border: calc(2 * var(--u)) solid var(--line); color: var(--ink-2); }
+  .h-lock img { height: calc(140 * var(--u)); }
+  .grid2 { display: grid; grid-template-columns: repeat(2, calc(300 * var(--u))); gap: calc(16 * var(--u)); justify-content: center; }
+  .grid2 img { width: 100%; height: calc(205 * var(--u)); }
+  .h-shape img { height: calc(130 * var(--u)); }
+  /* journal pitch slideshow */
+  .deck { display: flex; flex-direction: column; align-items: center; gap: calc(14 * var(--u)); }
+  .deck img { width: calc(800 * var(--u)); aspect-ratio: 16 / 9; display: block; border-radius: calc(8 * var(--u));
+    box-shadow: 0 calc(3 * var(--u)) calc(14 * var(--u)) rgba(43,33,27,.16); cursor: pointer; background: #f6f5f0; }
+  .deck-nav { display: flex; align-items: center; gap: calc(16 * var(--u)); font-size: calc(16 * var(--u)); color: var(--ink-2); }
+  .deck-nav button { width: calc(38 * var(--u)); height: calc(38 * var(--u)); border-radius: 50%; padding: 0; cursor: pointer; display: grid; place-items: center;
+    border: calc(2 * var(--u)) solid var(--ink); background: #fff; color: var(--ink); font: 700 calc(17 * var(--u))/1 "Averia Libre", serif; }
+  .deck-nav button:disabled { opacity: .3; cursor: default; }
+  .h-mock2 img { height: calc(250 * var(--u)); }
+
+  /* final logo with numbered call-outs */
+  .final { display: flex; align-items: center; justify-content: center; gap: calc(40 * var(--u)); }
+  .sheet { position: relative; height: calc(515 * var(--u)); aspect-ratio: 2515 / 2659; margin-right: calc(150 * var(--u)); }
+  .sheet img { width: 100%; height: 100%; display: block; }
+  .sheet .tag {
+    position: absolute; left: calc(100% + 26 * var(--u)); transform: translateY(-50%); white-space: nowrap;
+    font-family: "Cedarville Cursive", cursive; color: var(--red); font-size: calc(21 * var(--u));
+  }
+  .sheet .tag::before { content: ""; display: inline-block; width: calc(18 * var(--u)); height: calc(2 * var(--u)); background: var(--red); vertical-align: middle; margin-right: calc(8 * var(--u)); opacity: .6; }
+  .legend { list-style: none; margin: calc(6 * var(--u)) 0 calc(4 * var(--u)); padding: 0; display: flex; flex-direction: column; gap: calc(12 * var(--u)); }
+  .legend li { position: relative; padding-left: calc(22 * var(--u)); font-size: calc(17 * var(--u)); line-height: 1.4; }
+  .legend li::before { content: ""; position: absolute; left: 0; top: calc(9 * var(--u)); width: calc(10 * var(--u)); height: calc(3 * var(--u)); border-radius: 2px; background: var(--red); }
+  .legend li b { display: block; color: var(--ink); }
+  .legend li span { color: var(--ink-2); }
+
+  /* ---------- right: the story, one step at a time ---------- */
+  #shelf .panel { padding: calc(34 * var(--u)) calc(30 * var(--u)) calc(26 * var(--u)); display: flex; flex-direction: column; }
+  .steps { position: relative; flex: 1; }
+  /* each step scrolls on its own when its text is longer than the column */
+  .step {
+    position: absolute; inset: 0; opacity: 0; visibility: hidden; transition: opacity .3s ease, visibility 0s .3s;
+    overflow-y: auto; overscroll-behavior: contain; padding-right: calc(12 * var(--u)); margin-right: calc(-12 * var(--u));
+    padding-bottom: calc(18 * var(--u)); box-sizing: border-box;
+    scrollbar-width: thin; scrollbar-color: rgba(210,86,64,.55) transparent;
+  }
+  .step::-webkit-scrollbar { width: calc(6 * var(--u)); }
+  .step::-webkit-scrollbar-thumb { background: rgba(210,86,64,.55); border-radius: 99px; }
+  .scroll-hint { position: absolute; left: 0; right: 0; bottom: 0; height: calc(46 * var(--u)); pointer-events: none;
+    background: linear-gradient(rgba(252,236,200,0), var(--cream)); opacity: 0; transition: opacity .25s; }
+  .steps.more .scroll-hint { opacity: 1; }
+  .step.on { opacity: 1; visibility: visible; transition: opacity .4s ease .08s; }
+  .num { font-weight: 700; color: var(--red); font-size: calc(52 * var(--u)); line-height: 1; }
+  .step h3 { margin: calc(8 * var(--u)) 0 calc(14 * var(--u)); font-size: calc(30 * var(--u)); line-height: 1.15; font-weight: 700; }
+  .step p { margin: 0 0 calc(12 * var(--u)); font-size: calc(17 * var(--u)); line-height: 1.5; color: var(--ink-2); }
+  .step p.lead { color: var(--ink); font-weight: 700; }
+  .step h4 { margin: calc(14 * var(--u)) 0 calc(6 * var(--u)); font-size: calc(18 * var(--u)); color: var(--red-deep); }
+  .step .script { font-family: "Cedarville Cursive", cursive; color: var(--red); font-size: calc(24 * var(--u)); display: block; margin-top: calc(10 * var(--u)); }
+  .step.tight p { font-size: calc(16 * var(--u)); line-height: 1.45; margin-bottom: calc(8 * var(--u)); }
+  .step.tight h3 { margin-bottom: calc(6 * var(--u)); }
+  .foot { display: flex; align-items: center; gap: calc(10 * var(--u)); padding-top: calc(16 * var(--u)); border-top: calc(2 * var(--u)) dashed var(--line); }
+  .dots { display: flex; gap: calc(8 * var(--u)); }
+  .dots button { width: calc(11 * var(--u)); height: calc(11 * var(--u)); padding: 0; border-radius: 999px; border: calc(2 * var(--u)) solid var(--ink); background: none; cursor: pointer; transition: width .25s ease, background .25s ease; }
+  .dots button.on { width: calc(26 * var(--u)); background: var(--red); border-color: var(--red); }
+  .arrows { margin-left: auto; display: flex; gap: calc(10 * var(--u)); }
+  .arrows button, #closeBtn {
+    width: calc(44 * var(--u)); height: calc(44 * var(--u)); border-radius: 50%; padding: 0; cursor: pointer;
+    border: calc(3 * var(--u)) solid var(--ink); background: #fff; color: var(--ink);
+    font: 700 calc(20 * var(--u))/1 "Averia Libre", serif; display: grid; place-items: center;
+  }
+  .arrows button:disabled { opacity: .3; cursor: default; }
+  /* drawn icons, so the arrows look the same on every machine (the fonts have no arrow glyphs) */
+  .ico { width: 56%; height: 56%; display: block; fill: none; stroke: currentColor; stroke-width: 2.4;
+    stroke-linecap: round; stroke-linejoin: round; overflow: visible; }
+  .arrows button, .deck-nav button, #closeBtn { box-sizing: border-box; flex: none; }
+  #closeBtn { position: absolute; left: calc(1658 * var(--u) - 22 * var(--u)); top: calc(277 * var(--u) - 22 * var(--u)); z-index: 2; opacity: 0; visibility: hidden; transform: scale(.6); transition: opacity .25s, transform .25s, visibility 0s .25s; }
+  :host(.panel-open) #closeBtn { opacity: 1; visibility: visible; transform: none; transition: opacity .3s ease .5s, transform .3s ease .5s; }
+
+  @media (prefers-reduced-motion: reduce) { .view, .step { transition: none !important; } }
+</style>
+<div class="stage">
+  <img id="cafeNight" class="full" src="night/layers/cafe-night.webp" alt="">
+  <img id="lampNight" class="full" src="night/layers/lamp-night.webp" alt="">
+  <img id="banner" class="full" src="night/layers/banner.svg"     alt="">
+
+  <!-- ===== kitchen window -> white canvas ===== -->
+  <div id="win" class="pane">
+    <div class="panel" aria-live="polite">
+      <div class="head">
+        <h2>Yoga Penguins</h2><span class="script" id="studyTitle">Logo</span>
+        <span class="phase" id="phase">Phase 1 · first ideation</span>
+      </div>
+      <div class="rule"></div>
+      <div class="views">
+      <div class="study" data-id="logo" data-title="Logo">
+
+        <!-- 1 research -->
+        <div class="view" data-phase="Phase 1 · first ideation">
+          <figure class="research photo"><img decoding="async" fetchpriority="low" src="night/logo/research-video.png" alt="National Geographic documentary, Emperor Penguin Societies"></figure>
+          <div class="chips"><span class="chip">who it's for</span><span class="chip">age group</span><span class="chip">types of yoga</span><span class="chip">how penguins move</span></div>
+          <p class="cap"><span class="note">hours of penguin documentaries</span></p>
+        </div>
+
+        <!-- 2 penguin meets yoga -->
+        <div class="view" data-phase="Phase 1 · first ideation">
+          <div class="row h-icons">
+            <figure><img decoding="async" fetchpriority="low" src="night/logo/tiles/icons-1.webp" alt=""></figure>
+            <figure><img decoding="async" fetchpriority="low" src="night/logo/tiles/icons-2.webp" alt=""></figure>
+            <figure><img decoding="async" fetchpriority="low" src="night/logo/tiles/icons-3.webp" alt=""></figure>
+            <figure><img decoding="async" fetchpriority="low" src="night/logo/tiles/icons-4.webp" alt=""></figure>
+            <figure><img decoding="async" fetchpriority="low" src="night/logo/tiles/icons-5.webp" alt=""></figure>
+            <figure><img decoding="async" fetchpriority="low" src="night/logo/tiles/icons-6.webp" alt=""></figure>
+          </div>
+          <p class="cap">first marks: penguin silhouettes, a lotus, poses</p>
+          <div class="row h-sk">
+            <figure><img decoding="async" fetchpriority="low" src="night/logo/tiles/sketches-5.webp" alt=""><figcaption>"not pointy, we need a bit rounded"</figcaption></figure>
+            <figure><img decoding="async" fetchpriority="low" src="night/logo/tiles/sketches-6.webp" alt=""><figcaption>a resting, rounded pose</figcaption></figure>
+          </div>
+        </div>
+
+        <!-- 3 mockups + refining -->
+        <div class="view" data-phase="Phase 1 · first ideation">
+          <div class="row h-mock">
+            <figure class="photo"><img decoding="async" fetchpriority="low" src="night/logo/tiles/mockups1-1.webp" alt="logo on a yoga mat"></figure>
+            <figure class="photo"><img decoding="async" fetchpriority="low" src="night/logo/tiles/mockups1-2.webp" alt="logo on tee and mat"></figure>
+            <figure class="photo"><img decoding="async" fetchpriority="low" src="night/logo/tiles/mockups1-3.webp" alt="logo on notebook and mat"></figure>
+            <figure class="photo"><img decoding="async" fetchpriority="low" src="night/logo/tiles/mockups1-4.webp" alt="logo on a mat set"></figure>
+          </div>
+          <p class="cap">shortlisted marks, tried in context</p>
+          <div class="row mid h-ref">
+            <span class="note">we picked this one</span><span class="arrow" style="padding:0">→</span>
+            <figure><img decoding="async" fetchpriority="low" src="night/logo/tiles/refined-1.webp" alt="the chosen phase-one logo"></figure>
+          </div>
+        </div>
+
+        <!-- 4 print test -->
+        <div class="view" data-phase="Phase 1 · turning point">
+          <div class="row h-bag">
+            <figure class="photo"><img decoding="async" fetchpriority="low" src="night/logo/tiles/bags-1.webp" alt="logo printed on a black bag"></figure>
+            <figure class="photo"><img decoding="async" fetchpriority="low" src="night/logo/tiles/bags-2.webp" alt="logo printed on a purple bag"></figure>
+          </div>
+          <p class="cap">printed on real bags, the penguin got lost</p>
+        </div>
+
+        <!-- 5 phase two explorations -->
+        <div class="view" data-phase="Phase 2 · starting over">
+          <div class="row" style="align-items:stretch">
+            <div class="group">
+              <div class="h-grid">
+                <img decoding="async" fetchpriority="low" src="night/logo/tiles/textlogos-1.webp" alt=""><img decoding="async" fetchpriority="low" src="night/logo/tiles/textlogos-2.webp" alt="">
+                <img decoding="async" fetchpriority="low" src="night/logo/tiles/textlogos-3.webp" alt=""><img decoding="async" fetchpriority="low" src="night/logo/tiles/textlogos-4.webp" alt="">
+              </div>
+              <span class="cap">type &amp; YP monograms</span>
+            </div>
+            <div class="group">
+              <div class="h-grid">
+                <img decoding="async" fetchpriority="low" src="night/logo/tiles/shapes-1.webp" alt=""><img decoding="async" fetchpriority="low" src="night/logo/tiles/shapes-2.webp" alt="">
+                <img decoding="async" fetchpriority="low" src="night/logo/tiles/shapes-3.webp" alt=""><img decoding="async" fetchpriority="low" src="night/logo/tiles/shapes-4.webp" alt="">
+              </div>
+              <span class="cap">new penguin forms</span>
+            </div>
+          </div>
+          <p class="cap"><span class="note">looking for: a penguin reflection, grace, cuteness</span></p>
+        </div>
+
+        <!-- 6 one line -->
+        <div class="view" data-phase="Phase 2 · the idea">
+          <div class="flow">
+            <figure class="photo"><img decoding="async" fetchpriority="low" src="night/logo/tiles/hands-1.webp" alt="a hand in a yoga mudra"><figcaption>mudra</figcaption></figure>
+            <span class="arrow">→</span>
+            <figure><img decoding="async" fetchpriority="low" src="night/logo/tiles/hands-2.webp" alt="" style="height:calc(84 * var(--u)); margin-bottom:calc(38 * var(--u))"><figcaption>one-line hand</figcaption></figure>
+            <span class="arrow">→</span>
+            <figure><img decoding="async" fetchpriority="low" src="night/logo/tiles/bluesketch-2.webp" alt=""><figcaption>YP in one stroke</figcaption></figure>
+            <span class="arrow">→</span>
+            <figure><img decoding="async" fetchpriority="low" src="night/logo/tiles/final-1.webp" alt=""><figcaption>the penguin, one line</figcaption></figure>
+          </div>
+          <p class="cap"><span class="note">never lifting the pen</span></p>
+        </div>
+
+        <!-- 7 final logo -->
+        <div class="view" data-phase="Final logo">
+          <div class="final">
+            <div class="sheet">
+              <img decoding="async" fetchpriority="low" src="night/logo/final-variants.svg" alt="Final Yoga Penguins logo: outline and filled marks, two wordmark lockups, and four weight variations">
+              <span class="tag" style="top:15%">outline &amp; filled</span>
+              <span class="tag" style="top:54%">with the wordmark</span>
+              <span class="tag" style="top:90%">line to solid</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 8 in use -->
+        <div class="view" data-phase="Final logo">
+          <div class="row mid h-lock">
+            <figure><img decoding="async" fetchpriority="low" src="night/logo/tiles/lockups-1.webp" alt="logo with YOGA PENGUINS wordmark"></figure>
+            <figure><img decoding="async" fetchpriority="low" src="night/logo/iconset.webp" alt="app icon, sticker and stacked lockup"></figure>
+          </div>
+          <div class="row h-mock2">
+            <figure class="photo"><img decoding="async" fetchpriority="low" src="night/logo/tiles/mockups2-1.webp" alt="logo on a reception wall"></figure>
+            <figure class="photo"><img decoding="async" fetchpriority="low" src="night/logo/tiles/mockups2-2.webp" alt="logo on a tee and a notebook"></figure>
+          </div>
+        </div>
+
+      </div>
+      <!-- ================= 3D sculpture ================= -->
+      <div class="study" data-id="sculpture" data-title="3D Sculpture">
+        <div class="view" data-phase="Ideation · with AI">
+          <div class="row">
+            <figure class="photo"><img decoding="async" fetchpriority="low" src="night/works/sculpture/1.webp" alt="sketch sheet of a minimal white penguin in yoga poses" style="height:calc(196 * var(--u))"></figure>
+            <figure class="photo"><img decoding="async" fetchpriority="low" src="night/works/sculpture/2.webp" alt="white penguin figurines on a table" style="height:calc(196 * var(--u))"></figure>
+          </div>
+          <figure class="photo"><img decoding="async" fetchpriority="low" src="night/works/sculpture/3.webp" alt="Yoga Penguin modern wellness mascot system" style="width:calc(560 * var(--u))"></figure>
+          <p class="cap"><span class="note">calm, white and minimal</span></p>
+        </div>
+        <div class="view" data-phase="Ideation · penguin styles">
+          <figure class="photo"><img decoding="async" fetchpriority="low" src="night/works/sculpture/4.webp" alt="eight penguin miniatures in yoga poses" style="width:calc(640 * var(--u))"></figure>
+          <p class="cap"><span class="note">the one I liked: miniatures in poses</span></p>
+        </div>
+        <div class="view" data-phase="Ideation · material">
+          <figure class="photo"><img decoding="async" fetchpriority="low" src="night/works/sculpture/5.webp" alt="textured penguin carrying a rolled yoga mat" style="height:calc(430 * var(--u))"></figure>
+          <p class="cap"><span class="note">matte, sandstone-like texture</span></p>
+        </div>
+        <div class="view" data-phase="Ideation · iterations">
+          <div class="row">
+            <figure class="photo"><img decoding="async" fetchpriority="low" src="night/works/sculpture/6.webp" alt="group of penguin sculptures on a desk" style="width:calc(370 * var(--u))"></figure>
+            <figure class="photo"><img decoding="async" fetchpriority="low" src="night/works/sculpture/7.webp" alt="penguin sculptures with socks and mats" style="width:calc(370 * var(--u))"></figure>
+          </div>
+          <p class="cap">trying the figures in a real setting</p>
+        </div>
+      </div>
+
+      <!-- ================= scented candles ================= -->
+      <div class="study" data-id="candles" data-title="Scented Candles">
+        <div class="view" data-phase="Theme">
+          <figure class="photo"><img decoding="async" fetchpriority="low" src="night/works/candles/1.webp" alt="cozy nights candle, vanilla and chocolate, front and back" style="width:calc(560 * var(--u))"></figure>
+          <p class="cap"><span class="note">cozy nights · vanilla &amp; chocolate · baking at home</span></p>
+        </div>
+        <div class="view" data-phase="Direction 1 · the penguin in a moment">
+          <figure class="photo"><img decoding="async" fetchpriority="low" src="night/works/candles/2.webp" alt="fifteen candles, each with a penguin doing something different" style="width:calc(620 * var(--u))"></figure>
+          <p class="cap">reading, baking, painting, hiking, napping…</p>
+        </div>
+        <div class="view" data-phase="Direction 2 · one image">
+          <div class="row">
+            <figure class="photo"><img decoding="async" fetchpriority="low" src="night/works/candles/3.webp" alt="candle with a line drawing of baking together" style="width:calc(360 * var(--u))"></figure>
+            <figure class="photo"><img decoding="async" fetchpriority="low" src="night/works/candles/4.webp" alt="HomeBuddy candle" style="width:calc(360 * var(--u))"></figure>
+          </div>
+          <p class="cap"><span class="note">HomeBuddy</span></p>
+        </div>
+        <div class="view" data-phase="Direction 3 · wordplay">
+          <div class="grid2">
+            <figure class="photo"><img decoding="async" fetchpriority="low" src="night/works/candles/5.webp" alt="Table for one candle, front and back"></figure>
+            <figure class="photo"><img decoding="async" fetchpriority="low" src="night/works/candles/6.webp" alt="Sea you soon candle, front and back"></figure>
+            <figure class="photo"><img decoding="async" fetchpriority="low" src="night/works/candles/7.webp" alt="Table for one candle with wooden lid"></figure>
+            <figure class="photo"><img decoding="async" fetchpriority="low" src="night/works/candles/8.webp" alt="Sea you soon candle with wooden lid"></figure>
+          </div>
+          <p class="cap"><span class="note">Table for One · Sea You Soon</span></p>
+        </div>
+        <div class="view" data-phase="Turning point">
+          <div class="row">
+            <figure class="photo"><img decoding="async" fetchpriority="low" src="night/works/sculpture/4.webp" alt="" style="width:calc(240 * var(--u))"><figcaption>sculpture</figcaption></figure>
+            <figure class="photo"><img decoding="async" fetchpriority="low" src="night/works/candles/2.webp" alt="" style="width:calc(240 * var(--u))"><figcaption>candle</figcaption></figure>
+            <figure class="photo"><img decoding="async" fetchpriority="low" src="night/works/candles/5.webp" alt="" style="width:calc(240 * var(--u))"><figcaption>candle</figcaption></figure>
+          </div>
+          <p class="cap"><span class="note">each looked good alone, not together</span></p>
+        </div>
+      </div>
+
+      <!-- ================= character mascot ================= -->
+      <div class="study" data-id="mascot" data-title="Character Mascot">
+        <div class="view" data-phase="Building the character">
+          <figure class="photo"><img decoding="async" fetchpriority="low" src="night/works/mascot/1.webp" alt="hand sketch of three penguin characters with colour notes" style="width:calc(520 * var(--u))"></figure>
+          <p class="cap"><span class="note">playful, and for everyone</span></p>
+        </div>
+        <div class="view" data-phase="Every shape belongs">
+          <div class="row h-shape">
+            <figure><img decoding="async" fetchpriority="low" src="night/works/mascot/2.webp" alt=""></figure>
+            <figure><img decoding="async" fetchpriority="low" src="night/works/mascot/3.webp" alt=""></figure>
+            <figure><img decoding="async" fetchpriority="low" src="night/works/mascot/4.webp" alt=""></figure>
+            <figure><img decoding="async" fetchpriority="low" src="night/works/mascot/5.webp" alt=""></figure>
+          </div>
+          <p class="cap">four body shapes, one family</p>
+          <div class="row h-shape">
+            <figure><img decoding="async" fetchpriority="low" src="night/works/mascot/6.webp" alt=""></figure>
+            <figure><img decoding="async" fetchpriority="low" src="night/works/mascot/7.webp" alt=""></figure>
+            <figure><img decoding="async" fetchpriority="low" src="night/works/mascot/8.webp" alt=""></figure>
+          </div>
+          <p class="cap">the same character, moving through poses</p>
+        </div>
+        <div class="view" data-phase="Work in progress">
+          <div class="row">
+            <figure class="photo"><img decoding="async" fetchpriority="low" src="night/works/mascot/9.webp" alt="four mascot sculptures in a yoga studio" style="height:calc(196 * var(--u))"><figcaption>3D sculpture</figcaption></figure>
+            <figure class="photo"><img decoding="async" fetchpriority="low" src="night/works/mascot/10.webp" alt="mascot sculptures in yoga poses" style="height:calc(196 * var(--u))"><figcaption>in poses</figcaption></figure>
+            <figure class="photo"><img decoding="async" fetchpriority="low" src="night/works/mascot/11.webp" alt="Rain Check candle with the mascot" style="height:calc(196 * var(--u))"><figcaption>candle</figcaption></figure>
+          </div>
+          <p class="cap"><span class="note">one character across products</span></p>
+        </div>
+      </div>
+
+      <!-- ================= journal ================= -->
+      <div class="study" data-id="journal" data-title="Journal">
+        <div class="view" data-phase="Review">
+          <figure class="photo"><img decoding="async" fetchpriority="low" src="night/journal/prototype.webp" alt="Beside You, a 24-page journal prototype by Sohil" style="height:calc(470 * var(--u))"></figure>
+          <p class="cap">Beside You · 24-page prototype by Sohil</p>
+        </div>
+        <div class="view" data-phase="My pitch · in progress">
+          <div class="deck">
+            <img decoding="async" fetchpriority="low" id="slideImg" src="night/journal/slides/slide-01.webp" alt="Journal entry design pitch, slide 1">
+            <div class="deck-nav">
+              <button id="slidePrev" aria-label="Previous slide"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></button>
+              <span id="slideNum">1 / 17</span>
+              <button id="slideNext" aria-label="Next slide"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== shelves -> the story ===== -->
+  <div id="shelf" class="pane">
+    <div class="panel">
+      <div class="steps">
+      <div class="study" data-id="logo">
+        <article class="step">
+          <div class="num">01</div><h3>Starting with research</h3>
+          <p class="lead">Before sketching, I looked at who Yoga Penguins is for: the age group, and the different types of yoga on offer.</p>
+          <p>I also went through a lot of penguin videos to understand how they stand, move and carry themselves, and what makes them so loveable.</p>
+          <span class="script">know the people, know the penguin</span>
+        </article>
+        <article class="step">
+          <div class="num">02</div><h3>Penguin meets yoga</h3>
+          <p class="lead">The challenge was to bring two ideas into one mark: a penguin, and the balance and calm of yoga.</p>
+          <p>Early sketches played with the penguin's curved silhouette, a turned head, and resting poses. Many marks were explored and a few were shortlisted.</p>
+        </article>
+        <article class="step">
+          <div class="num">03</div><h3>Testing and refining</h3>
+          <p class="lead">The shortlisted logos went onto mats, notebooks and tees, to see which one we enjoyed most in context.</p>
+          <p>Once we chose one, I corrected its shape and form, tweaking the curves and proportions until it felt balanced.</p>
+        </article>
+        <article class="step">
+          <div class="num">04</div><h3>The print test</h3>
+          <h4>Why this logo did not work</h4>
+          <p>It looked appealing on screen, but printed on T-shirts and bags it did not communicate the penguin clearly enough. It showed the gap between how a logo looks on screen and how it translates onto real merchandise.</p>
+          <h4>Next steps</h4>
+          <p>Revisit the direction and explore new concepts. Understand what makes a penguin recognisable while keeping the yoga link. Use people's feedback, and test shortlisted designs on physical products before finalising.</p>
+        </article>
+        <article class="step">
+          <div class="num">05</div><h3>Back to the drawing board</h3>
+          <p class="lead">Nothing was hitting the spot, so I started again, keeping every mistake in mind.</p>
+          <p>I tried type-led marks, YP monograms and new penguin forms. Three things had to come through: a penguin you can read instantly, grace, and cuteness.</p>
+        </article>
+        <article class="step">
+          <div class="num">06</div><h3>One line, one flow</h3>
+          <p class="lead">The idea that clicked was a single continuous line, the way yoga moves: one breath flowing into the next.</p>
+          <p>It began with a mudra drawn as a one-line hand, then YP traced in one stroke, and finally the whole penguin in a single thread.</p>
+        </article>
+        <article class="step">
+          <div class="num">07</div><h3>The final logo</h3>
+          <p class="lead">Why one line? In yoga nothing stops and starts: each pose flows into the next, carried by the breath.</p>
+          <p>Drawing the penguin in a single continuous stroke keeps that continuity.</p>
+          <ul class="legend">
+            <li><b>Continuation</b><span>one unbroken line, the way a practice flows from pose to pose with the breath</span></li>
+            <li><b>Balance</b><span>poised on one foot, wing stretched out, holding the pose</span></li>
+            <li><b>Grounded in a heart</b><span>the feet close into a heart: rooted, and at peace</span></li>
+            <li><b>Expression</b><span>closed, smiling eyes: calm and content, still cute</span></li>
+            <li><b>Compact</b><span>a simple silhouette that still reads as a penguin when printed small</span></li>
+            <li><b>Y and P</b><span>wing and body branch into a Y, the head curls into a P</span></li>
+          </ul>
+          <span class="script">flow, balance, peace, in one line</span>
+        </article>
+        <article class="step">
+          <div class="num">08</div><h3>The final logo, applied</h3>
+          <p class="lead">The line mark sits with the YOGA PENGUINS wordmark, and as an app icon, a sticker and a stacked lockup.</p>
+          <p>Placed on a reception wall, a tee and a notebook, it still reads as a penguin, which is exactly what the first logo missed.</p>
+        </article>
+      </div>
+      <div class="study" data-id="sculpture">
+        <article class="step">
+          <div class="num">01</div><h3>Looking for something distinctive</h3>
+          <p class="lead">For the sculptures we wanted a figure that felt like Yoga Penguins and nobody else.</p>
+          <p>AI did a good amount of the heavy lifting here: it let us see quickly how an idea would look as a finished object, before making anything.</p>
+          <p>The first directions were calm, white and minimal, like a modern wellness mascot.</p>
+        </article>
+        <article class="step">
+          <div class="num">02</div><h3>Penguin styles</h3>
+          <p class="lead">Then we played with different penguin styles and parts.</p>
+          <p>The one I liked most: chunky miniatures, each holding a pose (tree, side stretch, warrior III, downward dog…), with patterned bellies so the set feels like a collection.</p>
+        </article>
+        <article class="step">
+          <div class="num">03</div><h3>Playing with material</h3>
+          <p class="lead">We also explored material, not just shape.</p>
+          <p>This one has a matte, gritty, sandstone-like finish, close to unglazed ceramic. With a beanie and a rolled mat, it's ready to head out for yoga.</p>
+        </article>
+        <article class="step">
+          <div class="num">04</div><h3>Iterating</h3>
+          <p class="lead">We kept iterating, and placed the figures in real settings to see how they sit on a desk or a shelf.</p>
+          <span class="script">see it, then shape it</span>
+        </article>
+      </div>
+
+      <div class="study" data-id="candles">
+        <article class="step">
+          <div class="num">01</div><h3>A scent takes you places</h3>
+          <p class="lead">The theme: a scent can take you somewhere without you actually going there.</p>
+          <p>Each candle ties a smell to a place or an action, so it reminds you of it. Vanilla, for example, is baking at home.</p>
+        </article>
+        <article class="step">
+          <div class="num">02</div><h3>The penguin in a moment</h3>
+          <p class="lead">One direction put the penguin into everyday situations.</p>
+          <p>Reading, baking, painting, hiking, napping: each scent gets a small scene.</p>
+        </article>
+        <article class="step">
+          <div class="num">03</div><h3>One image, one feeling</h3>
+          <p class="lead">Another let a single illustration carry the feeling, with the penguin used more quietly.</p>
+        </article>
+        <article class="step">
+          <div class="num">04</div><h3>Playing with words</h3>
+          <p class="lead">Then a bit of wordplay in the names: Table for One, Sea You Soon.</p>
+          <p>A name you smile at, which also tells you where the scent takes you, with a small note on the back.</p>
+        </article>
+        <article class="step">
+          <div class="num">05</div><h3>No consistency</h3>
+          <h4>What was missing</h4>
+          <p>One look worked for the sculptures, another for the candles. Each was good on its own, but together they didn't feel like one brand.</p>
+          <h4>Next</h4>
+          <p>Build the character first, and let every product grow from it.</p>
+        </article>
+      </div>
+
+      <div class="study" data-id="mascot">
+        <article class="step">
+          <div class="num">01</div><h3>Start with a character</h3>
+          <p class="lead">The obvious step we had skipped: build the mascot first.</p>
+          <p>The brief: the penguin should be playful and cater to everyone, of all shapes. You don't need to be perfect to be part of the Yoga Penguins community.</p>
+        </article>
+        <article class="step">
+          <div class="num">02</div><h3>Every shape belongs</h3>
+          <p class="lead">After a few ideations we settled on a family of different body shapes, each with its own colour of feet.</p>
+          <p>The same character then moves through yoga poses.</p>
+        </article>
+        <article class="step">
+          <div class="num">03</div><h3>Into sculpture and candle</h3>
+          <p class="lead">We tried the character as a 3D sculpture and on a candle, to see if it carries across products.</p>
+          <h4>Where it stands</h4>
+          <p>It still feels more playful than the slightly minimal look that age group needs, so this is still a work in progress.</p>
+        </article>
+      </div>
+
+      <div class="study" data-id="journal">
+        <article class="step">
+          <div class="num">01</div><h3>Reviewing Beside You</h3>
+          <p class="lead">Sohil designed this journal and asked me to review it. My feedback, in short:</p>
+          <ul class="legend">
+            <li><b>Feels a bit like a survey</b><span>preset options (comfort, certainty, connection…) read like a quiz, and the writer has to interpret their own answers</span></li>
+            <li><b>Hard to pick up again</b><span>the four-step journey suits one sitting; after a break, a different problem may be on your mind</span></li>
+            <li><b>Choosing a category adds load</b><span>thoughts rarely fit one box. Could people start writing first and find the direction later?</span></li>
+          </ul>
+        </article>
+        <article class="step">
+          <div class="num">02</div><h3>My journal pitch</h3>
+          <p class="lead">After all the research, I pitched a new entry design. It's still in progress, with more ideation and research to come.</p>
+          <p>We also got a book for inspiration, the Kurzgesagt health journal.</p>
+          <p>One entry, six steps: How's my body today? → What's on my mind? → Let's talk about it → Maybe… → For now… → One good thing today.</p>
+          <span class="script">put it down, step back, leave with something</span>
+        </article>
+      </div>
+
+        <div class="scroll-hint"></div>
+      </div>
+      <div class="foot">
+        <div class="dots" id="dots"></div>
+        <div class="arrows">
+          <button id="prevBtn" aria-label="Previous step"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></button>
+          <button id="nextBtn" aria-label="Next step"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <button id="lampHit" class="hit" aria-label="Lamp: double-tap to switch day and night" title="Double-tap the lamp"></button>
+  <div id="menu"></div>
+  <button id="closeBtn" aria-label="Close"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+</div></template>
+<script>
+(() => {
+  const host = document.getElementById('ncFront');
+  const root = host.attachShadow({ mode: 'open' });
+  root.appendChild(document.getElementById('ncTpl').content.cloneNode(true));
+  const $ = id => root.getElementById(id) || document.getElementById('nc-' + id);
+  // night / open state lives on the shadow host (for the night CSS) and on <body> (to hide day-only bits)
+  const setNight = v => { host.classList.toggle('night', v); document.body.classList.toggle('nc-night', v); };
+  const setOpen = v => { host.classList.toggle('panel-open', v); document.body.classList.toggle('nc-open', v); };
+  // while an Ed Optimize case study is open, the lamp must not catch clicks meant for it
+  new MutationObserver(() => host.classList.toggle('day-open', document.body.classList.contains('open')))
+    .observe(document.body, { attributes: true, attributeFilter: ['class'] });
+  const T = 2600; // whole change, ms
+  const OFF = 0.001; // "hidden" but kept painted, so the first frame never stalls
+
+  // [element, keyframes, start ms, duration ms, easing] — written for day -> night.
+  // Everything starts together on the tap. Night -> day plays the same timeline backwards.
+  const tracks = [
+    // lamp switches on: bulb goes from cream to yellow with a tiny flicker
+    [$('lampNight'), [{ opacity: OFF }, { opacity: 1, offset: .35 }, { opacity: .35, offset: .55 }, { opacity: 1 }], 0, 380, 'linear'],
+    // sun rolls down and out of the frame along a circular path
+    [$('sun'), [{ transform: 'rotate(0deg)' }, { transform: 'rotate(95deg)' }], 0, 1500, 'cubic-bezier(.45,.05,.7,.7)'],
+    // sky darkens
+    [document.getElementById('viewport'), [{ backgroundColor: '#E6F4FF' }, { backgroundColor: '#8FA9C8', offset: .45 }, { backgroundColor: '#305889' }], 0, 2000, 'ease-in-out'],
+    // clouds sink to their night spots and change colour
+    [$('cloudsDay'),   [{ opacity: 1,   transform: 'translateY(0)' }, { opacity: OFF, transform: 'translateY(11.4815%)' }], 0, 1800, 'ease-in-out'],
+    [$('cloudsNight'), [{ opacity: OFF, transform: 'translateY(-11.4815%)' }, { opacity: 1, transform: 'translateY(0)' }], 0, 1800, 'ease-in-out'],
+    // cafe warms up: wall, menu, title and bubble change
+    [$('cafeNight'), [{ opacity: OFF }, { opacity: 1 }], 150, 1000, 'ease-in-out'],
+    [$('banner'), [{ opacity: OFF }, { opacity: 1 }], 150, 1000, 'ease-in-out'],
+    // moon comes down into place from above the frame once the sun is setting
+    [$('moon'), [{ transform: 'rotate(-50deg)' }, { transform: 'rotate(0deg)' }], 1000, 1600, 'cubic-bezier(.2,.7,.3,1)'],
+  ];
+
+  let night = false, busy = true, open = false, pendingOpen = false;
+
+  function play(toNight) {
+    busy = true;
+    // the night menu (and its Logo button) is live from the first frame of the change
+    setNight(toNight);
+    const done = tracks.map(([el, kf, start, dur, easing]) => {
+      const a = el.animate(kf, {
+        duration: dur, easing, fill: 'both',
+        delay: toNight ? start : T - start - dur,
+        direction: toNight ? 'normal' : 'reverse',
+      });
+      return a.finished.then(() => { a.commitStyles(); a.cancel(); });
+    });
+    Promise.all(done).then(() => {
+      night = toNight; busy = false;
+      // Logo was clicked while the sky was still changing: open it now, no second click needed
+      if (pendingOpen && night) { const id = pendingOpen; pendingOpen = false; openPanel(id); }
+    });
+  }
+
+  // only accept taps once every layer is loaded and decoded
+  Promise.all([...root.querySelectorAll('.stage > img'), ...document.querySelectorAll('#ncBack img')].map(i => i.decode().catch(() => {})))
+    .then(() => {
+      busy = false;
+      // then, quietly, get every case-study picture decoded so opening a panel never stalls
+      const warm = () => root.querySelectorAll('img').forEach(i => i.decode().catch(() => {}));
+      'requestIdleCallback' in window ? requestIdleCallback(warm, { timeout: 4000 }) : setTimeout(warm, 1500);
+    });
+
+  // double-tap (touch) / double-click (mouse) on the lamp
+  let last = -1e9;
+  $('lampHit').addEventListener('pointerup', e => {
+    if (e.timeStamp - last < 380) {
+      last = -1e9;
+      if (!busy && !open && !document.body.classList.contains('open')) play(!night);
+    } else last = e.timeStamp;
+  });
+
+  /* ---------- case-study panes ---------- */
+  const W = 2573, H = 1080;
+  // pane rectangles in artwork units — must match #win / #shelf in the CSS
+  const panes = { win: [763, 277, 890, 702], shelf: [1664, 277, 417, 702] };
+
+  // give each pane a pixel-aligned copy of the night cafe, so it can slide away
+  for (const [id, [x, y, w, h]] of Object.entries(panes)) {
+    const copy = document.createElement('div');
+    copy.className = 'copy';
+    const layers = id === 'win' ? ['cafe-night', 'lamp-night'] : ['cafe-night'];
+    for (const l of layers) {
+      const img = document.createElement('img');
+      img.src = 'night/layers/' + l + '.webp';  // pre-drawn: the SVG's texture filters are too slow to redraw img.alt = '';
+      Object.assign(img.style, {
+        width: (W / w * 100) + '%', height: (H / h * 100) + '%',
+        left: (-x / w * 100) + '%', top: (-y / h * 100) + '%',
+      });
+      copy.appendChild(img);
+    }
+    $(id).prepend(copy);
+  }
+
+  /* ---------- night menu: one entry per case study ----------
+     hit  = clickable box [x, y, w, h], line = underline [x, y, width], all in artwork units */
+  const MENU = [
+    { id: 'logo',      label: 'Logo',             hit: [463, 394, 200, 114], line: [558, 462, 88] },
+    { id: 'sculpture', label: '3D Sculpture',     hit: [480, 518, 250, 118], line: [515, 567, 176] },
+    { id: 'candles',   label: 'Scented Candles',  hit: [480, 640, 250, 118], line: [500, 683, 206] },
+    { id: 'mascot',    label: 'Character Mascot', hit: [470, 762, 265, 98],  line: [482, 796, 242] },
+    { id: 'journal',   label: 'Journal',          hit: [520, 864, 215, 96],  line: [552, 926, 102] },
+  ];
+  const u = v => `calc(${v} * var(--u))`;
+  const menuBtns = {};
+  for (const m of MENU) {
+    const b = document.createElement('button');
+    b.className = 'hit menu-hit';
+    b.setAttribute('aria-label', 'Open the ' + m.label + ' case study');
+    Object.assign(b.style, { left: u(m.hit[0]), top: u(m.hit[1]), width: u(m.hit[2]), height: u(m.hit[3]) });
+    b.addEventListener('click', () => openPanel(m.id));
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    line.setAttribute('class', 'menu-line'); line.setAttribute('viewBox', '0 0 84 14');
+    line.setAttribute('preserveAspectRatio', 'none'); line.setAttribute('aria-hidden', 'true');
+    line.innerHTML = '<path pathLength="100" d="M2 8 C 18 5, 34 10, 50 7 S 74 5, 82 8"/>';
+    Object.assign(line.style, { left: u(m.line[0]), top: u(m.line[1]), width: u(m.line[2]) });
+    $('menu').append(b, line);
+    menuBtns[m.id] = b;
+  }
+
+  /* ---------- case studies ---------- */
+  let views = [], steps = [], dots = [], cur = 0, study = null;
+
+  function setStudy(id) {
+    study = id;
+    root.querySelectorAll('.study').forEach(s => s.classList.toggle('on', s.dataset.id === id));
+    Object.entries(menuBtns).forEach(([k, b]) => b.classList.toggle('active', k === id));
+    const wrap = root.querySelector(`.views .study[data-id="${id}"]`);
+    $('studyTitle').textContent = wrap.dataset.title;
+    views = [...wrap.querySelectorAll('.view')];
+    steps = [...root.querySelectorAll(`.steps .study[data-id="${id}"] .step`)];
+    $('dots').innerHTML = '';
+    dots = steps.map((_, i) => {
+      const b = document.createElement('button');
+      b.setAttribute('aria-label', 'Step ' + (i + 1));
+      b.addEventListener('click', () => go(i));
+      $('dots').appendChild(b);
+      return b;
+    });
+    go(0);
+  }
+
+  // fade at the bottom of the story column while there is more text below
+  function updateHint() {
+    const s = steps[cur];
+    root.querySelector('.steps').classList.toggle('more', !!s && s.scrollHeight - s.scrollTop - s.clientHeight > 4);
+  }
+  root.querySelectorAll('.step').forEach(s => s.addEventListener('scroll', updateHint, { passive: true }));
+  window.addEventListener('resize', () => updateHint());
+
+  function go(i) {
+    cur = Math.max(0, Math.min(steps.length - 1, i));
+    views.forEach((v, k) => v.classList.toggle('on', k === cur));
+    steps.forEach((s, k) => s.classList.toggle('on', k === cur));
+    dots.forEach((d, k) => d.classList.toggle('on', k === cur));
+    $('phase').textContent = views[cur].dataset.phase || '';
+    steps[cur].scrollTop = 0;
+    updateHint();
+    $('prevBtn').disabled = cur === 0;
+    $('nextBtn').disabled = cur === steps.length - 1;
+  }
+  $('prevBtn').onclick = () => go(cur - 1);
+  $('nextBtn').onclick = () => go(cur + 1);
+
+  /* journal pitch slideshow */
+  const SLIDES = 17;
+  let slide = 1;
+  function showSlide(n) {
+    slide = Math.max(1, Math.min(SLIDES, n));
+    $('slideImg').src = `night/journal/slides/slide-${String(slide).padStart(2, '0')}.webp`;
+    $('slideImg').alt = `Journal entry design pitch, slide ${slide}`;
+    $('slideNum').textContent = `${slide} / ${SLIDES}`;
+    $('slidePrev').disabled = slide === 1;
+    $('slideNext').disabled = slide === SLIDES;
+    // warm the next slide so clicking through never waits
+    if (slide < SLIDES) new Image().src = `night/journal/slides/slide-${String(slide + 1).padStart(2, '0')}.webp`;
+  }
+  $('slidePrev').onclick = () => showSlide(slide - 1);
+  $('slideNext').onclick = () => showSlide(slide + 1);
+  $('slideImg').onclick = () => showSlide(slide < SLIDES ? slide + 1 : 1);
+  showSlide(1);
+
+  const OUT = 'cubic-bezier(.55,0,.75,.35)', IN = 'cubic-bezier(.2,.9,.3,1.04)';
+  const anim = (el, from, to, duration, delay, easing) =>
+    el.animate([{ transform: from }, { transform: to }], { duration, delay, easing, fill: 'both' }).finished;
+
+  async function openPanel(id = 'logo') {
+    if (!host.classList.contains('night')) return;
+    // already open: just switch to the other case study in place
+    if (open) { if (!busy && id !== study) setStudy(id); return; }
+    if (busy) { pendingOpen = id; return; }   // remember the click, open as soon as we can
+    open = busy = true; setStudy(id);
+    setOpen(true);
+    const jobs = [];
+    ['win', 'shelf'].forEach((pid, k) => {
+      const pane = $(pid), copy = pane.querySelector('.copy'), panel = pane.querySelector('.panel');
+      pane.classList.add('on');
+      // the cafe interior scrolls up and away, then the new content drops in
+      jobs.push(anim(copy, 'translateY(0)', 'translateY(-101%)', 340, k * 60, OUT));
+      jobs.push(anim(panel, 'translateY(-101%)', 'translateY(0)', 540, 220 + k * 60, IN));
+    });
+    await Promise.all(jobs);
+    busy = false;
+    $('nextBtn').focus({ preventScroll: true });
+  }
+
+  async function closePanel() {
+    if (!open || busy) return;
+    busy = true;
+    setOpen(false);
+    Object.values(menuBtns).forEach(b => b.classList.remove('active'));
+    const jobs = [];
+    ['win', 'shelf'].forEach((pid, k) => {
+      const pane = $(pid), copy = pane.querySelector('.copy'), panel = pane.querySelector('.panel');
+      jobs.push(anim(panel, 'translateY(0)', 'translateY(-101%)', 360, k * 60, OUT));
+      jobs.push(anim(copy, 'translateY(-101%)', 'translateY(0)', 520, 260 + k * 60, IN));
+    });
+    await Promise.all(jobs);
+    ['win', 'shelf'].forEach(pid => {
+      $(pid).classList.remove('on');
+      $(pid).querySelectorAll('.copy, .panel').forEach(el => el.getAnimations().forEach(a => a.cancel()));
+    });
+    open = busy = false;
+  }
+
+  $('closeBtn').addEventListener('click', closePanel);
+  document.addEventListener('keydown', e => {
+    if (!open) return;
+    if (e.key === 'Escape') closePanel();
+    if (e.key === 'ArrowRight') go(cur + 1);
+    if (e.key === 'ArrowLeft') go(cur - 1);
+  });
 })();
 </script>
 </body>
