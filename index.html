@@ -21,6 +21,10 @@
   #cafe{position:absolute;inset:0;width:1920px;height:1080px;display:block;user-select:none;-webkit-user-drag:none}
 
 
+  /* the cafe's brown base, continued below the drawing when the window is taller than it */
+  #cafeBase{position:absolute;left:0;top:1079px;width:1920px;height:1600px;pointer-events:none;
+    background:url(night/layers/base-strip.png) 0 0/1920px 1px repeat-y}
+
   /* ---------- night cafe: sky layers (sun, moon, clouds) ---------- */
   #ncBack{position:absolute;left:-304px;top:0;width:2573px;height:1080px;pointer-events:none}
   #ncBack img{position:absolute;display:block;pointer-events:none;user-select:none;-webkit-user-drag:none;will-change:transform,opacity}
@@ -317,6 +321,7 @@
       <img id="nc-cloudsDay" class="full" src="night/layers/clouds-day.svg" alt="">
       <img id="nc-cloudsNight" class="full" src="night/layers/clouds-night.svg" alt="">
     </div>
+    <div id="cafeBase" aria-hidden="true"></div>
     <img id="cafe" src="assets/cafe.webp" fetchpriority="high" alt="Illustrated cafe called Ed Optimize: a menu of case studies on the left, a girl working at a laptop behind the counter, and shelves on the right.">
 
     <!-- menu hotspots (positions in SVG units) -->
@@ -738,7 +743,8 @@
   const body = document.body, stage = $('#stage');
 
   /* ---------- fit the 1920×1080 stage to the window ---------- */
-  function fit(){ const s = Math.min(innerWidth/1920, innerHeight/1080); stage.style.zoom = s; stage.style.left = (innerWidth - 1920*s)/2/s + "px"; stage.style.top = (innerHeight - 1080*s)/2/s + "px"; }
+  const SCENE_W = 2408;  // stage units, from the sun to the right-hand clouds
+  function fit(){ const s = Math.min(innerWidth/SCENE_W, innerHeight/1080); stage.style.zoom = s; stage.style.left = (innerWidth - 1920*s)/2/s + "px"; stage.style.top = (innerHeight - 1080*s)/2/s + "px"; }
   addEventListener('resize', fit); fit();
 
   /* ================= UI revamp ================= */
