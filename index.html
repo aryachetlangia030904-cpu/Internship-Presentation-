@@ -24,6 +24,16 @@
   /* the cafe's brown base, continued below the drawing when the window is taller than it */
   #cafeBase{position:absolute;left:0;top:1079px;width:1920px;height:1600px;pointer-events:none;
     background:url(night/layers/base-strip.png) 0 0/1920px 1px repeat-y}
+  /* the scene never scrolls: content inside a panel (e.g. the onboarding prototype) can't shove the cafe */
+  #viewport{overflow:clip}
+
+  /* research & planning scrolls, so the paper test can sit under the documents */
+  .view.research.screen-inner{padding:0;justify-content:flex-start}
+  .paper-test{width:840px;margin:34px auto 6px}
+  .paper-note{font:600 15px/1.45 "Averia Libre",serif;color:var(--ink-2);margin:0 0 14px}
+  .paper-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+  .paper-grid figure{margin:0;border:3px solid var(--line);border-radius:12px;overflow:hidden;background:#fff;box-shadow:5px 5px 0 rgba(11,10,9,.9)}
+  .paper-grid img{display:block;width:100%;height:auto}
 
   /* ---------- night cafe: sky layers (sun, moon, clouds) ---------- */
   #ncBack{position:absolute;left:-304px;top:0;width:2573px;height:1080px;pointer-events:none}
@@ -32,9 +42,14 @@
   #nc-sun{left:3.4201%;top:8.9815%;width:9.1333%;height:20.5556%;  transform-origin: -165.106% 48.198%;}
   #nc-moon{left:5.0525%;top:13.4259%;width:6.6459%;height:17.6852%; transform-origin: -368.421% 50.262%; transform: rotate(-50deg);}
   #nc-cloudsNight{opacity: .001; transform: translateY(-11.4815%);}
-  /* the Ed Optimize menu, sign and day-only extras step aside at night */
-  .menu-hit,.menu-heading,.speech,.sign-cta,.shelf-item,#thought{transition:opacity .45s ease .25s}
-  body.nc-night .menu-hit,body.nc-night .menu-heading,body.nc-night .speech,body.nc-night .sign-cta,body.nc-night .shelf-item{opacity:0!important;pointer-events:none!important}
+  /* the Ed Optimize menu, speech bubble and day-only extras step aside at night.
+     Going to night they leave at once (before the night bubble and menu appear);
+     coming back they wait until the night cafe has faded away, so nothing overlaps. */
+  body .menu-hit,body .menu-heading,body .speech,body .shelf-item{transition:opacity .35s ease 2.25s}
+  body.nc-night .menu-hit,body.nc-night .menu-heading,body.nc-night .speech,body.nc-night .shelf-item{opacity:0!important;pointer-events:none!important;transition:opacity .15s ease 0s}
+  /* the sign is identical by day and night: it cross-fades with the night copy */
+  body .sign-cta{transition:opacity 1s ease-in-out 1.45s}
+  body.nc-night .sign-cta{opacity:0!important;transition:opacity 1s ease-in-out .15s}
   body.nc-night #thought{display:none}
   #ncFront{position:absolute;left:0;top:0;width:1920px;height:1080px;pointer-events:none}
 
@@ -400,9 +415,10 @@
       </div>
 
       <div class="view research screen-inner">
+        <div class="revamp-scroll scroll-col">
         <div class="proto-head reveal d1">
           <h1 class="proto-title"><span>Research &amp; planning</span><span class="pill">Documents</span></h1>
-          <p class="proto-note">The working documents behind the research. <b>Scroll inside</b> to read.</p>
+          <p class="proto-note">The working documents behind the research. <b>Scroll inside</b> to read, and <b>scroll down</b> for the paper test.</p>
         </div>
         <div class="doc-tabs reveal d2" role="tablist" id="docTabs">
           <button class="doc-tab" role="tab" aria-selected="true" data-doc="https://docs.google.com/document/d/1amlXmYvX8EKsaIFKW-3zzPrUmpNyrtzu1XTFwmOzMbQ/preview" data-open="https://docs.google.com/document/d/1amlXmYvX8EKsaIFKW-3zzPrUmpNyrtzu1XTFwmOzMbQ/edit?usp=sharing">
@@ -414,6 +430,16 @@
           <a class="doc-tab" id="docOpen" href="#" target="_blank" rel="noopener" title="Open this document in Google Docs">Open doc ↗</a>
         </div>
         <div class="device reveal d3" id="docDevice"><span class="loading" style="position:absolute;inset:0;display:grid;place-items:center;font:400 35px "Cedarville Cursive",cursive;color:var(--ink-2)">loading…</span></div>
+        <div class="proto-item paper-test">
+          <h3><span><span class="n">↳</span>Testing it on real paper</span></h3>
+          <p class="paper-note">I tested the product the way it's meant to be used: a short printed tenses quiz, answered by hand, to see how things work from the paper to the results.</p>
+          <div class="paper-grid">
+            <figure><img src="assets/paper-test-1.webp" alt="Printed tenses quiz, answered by hand (sheet 1)" loading="lazy"></figure>
+            <figure><img src="assets/paper-test-2.webp" alt="Printed tenses quiz, answered by hand (sheet 2)" loading="lazy"></figure>
+            <figure><img src="assets/paper-test-3.webp" alt="Printed tenses quiz, answered by hand (sheet 3)" loading="lazy"></figure>
+          </div>
+        </div>
+        </div>
       </div>
 
       <div class="view process screen-inner">
@@ -599,8 +625,8 @@
               <div class="device" data-src="https://wise-welcome-flow.lovable.app/"><span class="loading">loading…</span></div></div>
             <div class="proto-item"><h3><span><span class="n">02</span>Onboarding ideation</span><a href="https://delete-zaffre-18596081.figma.site/" target="_blank" rel="noopener">Open ↗</a></h3>
               <div class="device" data-src="https://delete-zaffre-18596081.figma.site/"><span class="loading">loading…</span></div></div>
-            <div class="proto-item"><h3><span><span class="n">03</span>Onboarding final</span></h3>
-              <div class="device"><div class="scroller"><img src="assets/onboarding-final.jpg" alt="Final onboarding design: sign-in, profile setup questions, a 'Why Smart Paper' walkthrough, and the home dashboard before and after classes are added."></div></div></div>
+            <div class="proto-item"><h3><span><span class="n">03</span>Onboarding final</span><a href="https://claude.ai/artifact/36GzamtenLGaxY4ucUKG5f" target="_blank" rel="noopener">Open ↗</a></h3>
+              <div class="device" data-src="onboarding-final/index.html"><span class="loading">loading…</span></div></div>
           </div>
         </div>
       </div>
@@ -743,9 +769,11 @@
   const body = document.body, stage = $('#stage');
 
   /* ---------- fit the 1920×1080 stage to the window ---------- */
-  const SCENE_W = 2408;  // stage units, from the sun to the right-hand clouds
-  function fit(){ const s = Math.min(innerWidth/SCENE_W, innerHeight/1080); stage.style.zoom = s; stage.style.left = (innerWidth - 1920*s)/2/s + "px"; stage.style.top = (innerHeight - 1080*s)/2/s + "px"; }
+  const SCENE_W = 2340, SKY_SHARE = 0.72;  // scene width in stage units; share of spare height kept above the roof
+  function fit(){ const s = Math.min(innerWidth/SCENE_W, innerHeight/1080); stage.style.zoom = s; stage.style.left = (innerWidth - 1920*s)/2/s + "px"; stage.style.top = (innerHeight - 1080*s)*SKY_SHARE/s + "px"; }
   addEventListener('resize', fit); fit();
+  const vp = document.getElementById('viewport');
+  vp.addEventListener('scroll', () => { if (vp.scrollTop || vp.scrollLeft) vp.scrollTop = vp.scrollLeft = 0; });
 
   /* ================= UI revamp ================= */
   const COPY = {
@@ -993,7 +1021,7 @@
     will-change: transform, opacity;   /* each layer is its own GPU bitmap */
   }
   .full { left: 0; top: 0; width: 100%; height: 100%; }
-  #cafeNight, #lampNight, #banner { opacity: .001; }
+  #cafeNight, #lampLit, #banner { opacity: .001; }
 
   .hit { position: absolute; background: none; border: 0; padding: 0; cursor: pointer; }
   .hit:focus-visible { outline: calc(4 * var(--u)) solid var(--red); outline-offset: calc(4 * var(--u)); border-radius: calc(12 * var(--u)); }
@@ -1137,7 +1165,7 @@
 </style>
 <div class="stage">
   <img id="cafeNight" class="full" src="night/layers/cafe-night.webp" alt="">
-  <img id="lampNight" class="full" src="night/layers/lamp-night.webp" alt="">
+  <img id="lampLit"   class="full" src="night/layers/lamp-lit.svg" alt="">
   <img id="banner" class="full" src="night/layers/banner.svg"     alt="">
 
   <!-- ===== kitchen window -> white canvas ===== -->
@@ -1558,8 +1586,8 @@
   // [element, keyframes, start ms, duration ms, easing] — written for day -> night.
   // Everything starts together on the tap. Night -> day plays the same timeline backwards.
   const tracks = [
-    // lamp switches on: bulb goes from cream to yellow with a tiny flicker
-    [$('lampNight'), [{ opacity: OFF }, { opacity: 1, offset: .35 }, { opacity: .35, offset: .55 }, { opacity: 1 }], 0, 380, 'linear'],
+    // the lamp lights up where it hangs: same lamp, bulb glowing warm (no flicker, no jump)
+    [$('lampLit'), [{ opacity: OFF }, { opacity: 1 }], 0, 320, 'ease-out'],
     // sun rolls down and out of the frame along a circular path
     [$('sun'), [{ transform: 'rotate(0deg)' }, { transform: 'rotate(95deg)' }], 0, 1500, 'cubic-bezier(.45,.05,.7,.7)'],
     // sky darkens
@@ -1622,10 +1650,11 @@
   for (const [id, [x, y, w, h]] of Object.entries(panes)) {
     const copy = document.createElement('div');
     copy.className = 'copy';
-    const layers = id === 'win' ? ['cafe-night', 'lamp-night'] : ['cafe-night'];
+    const layers = id === 'win' ? ['cafe-night.webp', 'lamp-lit.svg'] : ['cafe-night.webp'];
     for (const l of layers) {
       const img = document.createElement('img');
-      img.src = 'night/layers/' + l + '.webp';  // pre-drawn: the SVG's texture filters are too slow to redraw img.alt = '';
+      img.alt = '';
+      img.src = 'night/layers/' + l;  // the cafe is pre-drawn: its SVG texture filters are too slow to redraw
       Object.assign(img.style, {
         width: (W / w * 100) + '%', height: (H / h * 100) + '%',
         left: (-x / w * 100) + '%', top: (-y / h * 100) + '%',
